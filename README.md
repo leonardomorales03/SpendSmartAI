@@ -71,12 +71,6 @@ Interactúa con tus datos financieros mediante lenguaje natural. Pregunta a la I
     ```
     Visita `http://localhost:3000` para ver la app en acción.
 
----
-
-## 🛣️ Roadmap
-Consulta el archivo [ROADMAP.md](ROADMAP.md) para ver las fases de desarrollo pendientes, incluyendo entrada por voz, reconocimiento de facturas (OCR) y gestión de deudas.
-
----
 
 ## 📄 Licencia
 Este proyecto es privado y se desarrolla con fines de portafolio profesional.
