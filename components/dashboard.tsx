@@ -12,7 +12,7 @@ import { StatsGrid } from '@/components/stats-grid'
 import { CategoryChart } from '@/components/category-chart'
 import { AnimatePresence } from 'framer-motion'
 
-export function Dashboard({ initialTransactions }: { initialTransactions: Transaction[] }) {
+export function Dashboard({ initialTransactions, initialBudget }: { initialTransactions: Transaction[], initialBudget: number }) {
     const [aiAnswer, setAiAnswer] = useState<AIAnswer | null>(null)
 
     const [optimisticTransactions, addOptimisticTransaction] = useOptimistic(
@@ -20,14 +20,23 @@ export function Dashboard({ initialTransactions }: { initialTransactions: Transa
         (state, newTransaction: Transaction) => [newTransaction, ...state]
     )
 
-    const handleAddTransaction = (result: Transaction | AIAnswer) => {
-        // Check if it is an Answer or a Transaction
+    const handleAddTransaction = (result: Transaction | AIAnswer | Transaction[]) => {
+        // Check if it's an array of transactions
+        if (Array.isArray(result)) {
+            setAiAnswer(null);
+            result.forEach(t => addOptimisticTransaction(t));
+            return;
+        }
+
+        // Check if it is an Answer or a single Transaction
         if ('type' in result && result.type === 'answer') {
             setAiAnswer(result);
         } else {
             const t = result as Transaction;
             setAiAnswer(null); // Clear previous answer if adding a new expense
-            addOptimisticTransaction(t);
+            if (t.id) { // Ensure it's a valid transaction object
+                addOptimisticTransaction(t);
+            }
         }
     }
 
@@ -40,7 +49,7 @@ export function Dashboard({ initialTransactions }: { initialTransactions: Transa
 
             {/* 2. TOTAL SPENDING & KPIs */}
             <div className="space-y-6">
-                <SpendingChart transactions={optimisticTransactions} />
+                <SpendingChart transactions={optimisticTransactions} initialBudget={initialBudget} />
                 <StatsGrid transactions={optimisticTransactions} />
             </div>
 

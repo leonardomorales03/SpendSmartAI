@@ -1,26 +1,25 @@
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useTransition } from 'react'
 import { Transaction } from '@/lib/types'
-import { Pencil, Check } from 'lucide-react'
+import { Pencil, Check, Loader2 } from 'lucide-react'
+import { updateBudget } from '@/actions/budget'
 
-export function SpendingChart({ transactions }: { transactions: Transaction[] }) {
-    const [budget, setBudget] = useState(1000000);
+export function SpendingChart({ transactions, initialBudget }: { transactions: Transaction[], initialBudget: number }) {
+    const [budget, setBudget] = useState(initialBudget);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSaving, startTransition] = useTransition();
     const inputRef = useRef<HTMLInputElement>(null);
-
-    useEffect(() => {
-        const savedBudget = localStorage.getItem('monthly_budget');
-        if (savedBudget) {
-            setBudget(parseFloat(savedBudget));
-        }
-    }, []);
 
     const handleSave = () => {
         if (inputRef.current) {
             const newVal = parseFloat(inputRef.current.value);
             if (!isNaN(newVal) && newVal > 0) {
+                // Optimistic update
                 setBudget(newVal);
-                localStorage.setItem('monthly_budget', newVal.toString());
+                
+                startTransition(async () => {
+                    await updateBudget(newVal);
+                });
             }
         }
         setIsEditing(false);
@@ -63,10 +62,14 @@ export function SpendingChart({ transactions }: { transactions: Transaction[] })
                     ) : (
                         <div
                             className="flex items-center gap-2 justify-end cursor-pointer group/edit hover:text-indigo-200 transition-colors"
-                            onClick={() => setIsEditing(true)}
+                            onClick={() => !isSaving && setIsEditing(true)}
                         >
                             <p className="font-semibold text-lg">${budget.toLocaleString('es-CO')}</p>
-                            <Pencil className="w-3 h-3 opacity-0 group-hover/edit:opacity-100 transition-opacity" />
+                            {isSaving ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                                <Pencil className="w-3 h-3 opacity-0 group-hover/edit:opacity-100 transition-opacity" />
+                            )}
                         </div>
                     )}
                 </div>

@@ -1,17 +1,25 @@
 import { Dashboard } from "@/components/dashboard";
 import { Transaction } from "@/lib/types";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/server";
 import { WisdomBanner } from "@/components/wisdom-banner";
+import { getBudget } from "@/actions/budget";
+import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
 
 async function getTransactions(): Promise<Transaction[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return []
+
   const { data, error } = await supabase
     .from('transactions')
     .select(`
       *,
       category:categories(id, name, emoji)
     `)
+    .eq('user_id', user.id)
     .order('date', { ascending: false });
 
   if (error) {
@@ -27,7 +35,15 @@ async function getTransactions(): Promise<Transaction[]> {
 }
 
 export default async function Home() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect('/login')
+  }
+
   const transactions = await getTransactions();
+  const initialBudget = await getBudget();
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
@@ -35,10 +51,21 @@ export default async function Home() {
         <h1 className="text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-t from-zinc-400 to-white animate-in fade-in slide-in-from-bottom-4 duration-1000">
           SpendSmart AI
         </h1>
-        <WisdomBanner />
+        <div className="flex flex-col items-center justify-center gap-2">
+          <WisdomBanner />
+          <div className="flex items-center gap-3 text-xs text-zinc-500">
+            <span>{user.email}</span>
+            <span className="text-zinc-700">|</span>
+            <form action="/auth/signout" method="post">
+                <button className="hover:text-white transition-colors" type="submit">
+                  Cerrar Sesión
+                </button>
+            </form>
+          </div>
+        </div>
       </header>
 
-      <Dashboard initialTransactions={transactions} />
+      <Dashboard initialTransactions={transactions} initialBudget={initialBudget} />
     </main>
   );
 }
