@@ -20,7 +20,7 @@ create table if not exists transactions (
   category_id uuid references categories(id),
   image_url text,
   enriched_data jsonb default '{}'::jsonb, -- Stores extra info from AI (tags, location, merchant, etc.)
-  user_id uuid, -- For Auth, optional for MVP if single user
+  user_id uuid references auth.users(id), -- Linked to Supabase Auth
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -36,11 +36,12 @@ insert into categories (name, emoji) values
 -- Create user_settings table
 create table if not exists user_settings (
   id uuid primary key default uuid_generate_v4(),
+  user_id uuid references auth.users(id), -- Linked to Supabase Auth
   monthly_budget decimal(10, 2) default 1000000,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- Insert default settings if not exist (for single user MVP)
-insert into user_settings (monthly_budget)
-select 1000000
-where not exists (select 1 from user_settings);
+-- Insert default settings if not exist (for single user MVP - deprecated with Auth)
+-- insert into user_settings (monthly_budget)
+-- select 1000000
+-- where not exists (select 1 from user_settings);
