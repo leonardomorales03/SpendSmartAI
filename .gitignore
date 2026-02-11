@@ -46,6 +46,7 @@ ROADMAP.md
 # IDEs
 .vscode/
 .idea/
+.trae/
 
 # OS Junk
 .DS_Store
@@ -61,3 +62,9 @@ yarn-error.log*
 
 # Build systems
 .turbo/
+
+# Local Tests & Assets
+test-image/
+test-results/
+scripts/
+tests/fixtures/

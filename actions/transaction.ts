@@ -2,16 +2,60 @@
 
 import { Transaction, AIAnswer } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase/server'
 import { groq } from '@/lib/groq'
 
-export async function extractTransactionDetails(text: string): Promise<Transaction | AIAnswer> {
+export async function extractFromPdf(formData: FormData): Promise<Transaction[] | AIAnswer> {
+    const file = formData.get('file') as File;
+    if (!file) throw new Error('No se proporcionó ningún archivo PDF');
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    
+    try {
+        // @ts-ignore
+        const PDFParser = require('pdf2json');
+        
+        const text = await new Promise<string>((resolve, reject) => {
+            const pdfParser = new PDFParser(null, 1); // 1 = text only
+            
+            pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+            pdfParser.on("pdfParser_dataReady", () => {
+                // getRawTextContent devuelve el texto extraído
+                resolve(pdfParser.getRawTextContent());
+            });
+
+            pdfParser.parseBuffer(buffer);
+        });
+
+        console.log('--- TEXTO EXTRAÍDO DE PDF (pdf2json) ---');
+        console.log(text.substring(0, 200) + '...'); // Log truncado para no ensuciar
+
+        return extractTransactionDetails(text);
+    } catch (error) {
+        console.error('Error al procesar PDF:', error);
+        throw new Error('No se pudo procesar el PDF');
+    }
+}
+
+export async function extractTransactionDetails(text: string): Promise<Transaction[] | AIAnswer> {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
     // 1. DETECT IF IT IS A QUESTION (ASK MY MONEY)
     if (text.startsWith('?')) {
+        if (!user) {
+             return {
+                type: 'answer',
+                text: "Debes iniciar sesión para consultar tus datos.",
+            } as AIAnswer;
+        }
+
         // Obtenemos historial reciente para que la IA responda con contexto real
         const { data: recentTransactions } = await supabase
             .from('transactions')
             .select('*, category:categories(name)')
+            .eq('user_id', user.id)
             .limit(20);
 
         const completion = await groq.chat.completions.create({
@@ -35,27 +79,33 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
     }
 
     // 2. NORMAL TRANSACTION EXTRACTION WITH REAL AI
-    console.log('--- PROCESANDO CON IA ---');
+    console.log('--- PROCESANDO CON IA (Multi-Transaction) ---');
     console.log('Texto recibido:', text);
 
     const { data: dbCategories } = await supabase.from('categories').select('*');
-    const categoriesList = (dbCategories || []).map(c => `${c.name} (ID: ${c.id})`).join(', ');
+    const categoriesList = (dbCategories || []).map((c: any) => `${c.name} (ID: ${c.id})`).join(', ');
 
     const completion = await groq.chat.completions.create({
         messages: [
             {
                 role: "system",
-                content: `Eres un extractor de datos bancarios. Tu objetivo es convertir lenguaje natural en JSON. 
+                content: `Eres un extractor de datos bancarios. Tu objetivo es convertir lenguaje natural en un array de transacciones JSON. 
                 Contexto: Colombia. 
                 Si el usuario dice 'k' o 'mil', multiplícalo (ej: 50k = 50000). 
                 Categorías disponibles (USA LOS IDs PROPORCIONADOS): [${categoriesList}].
                 
+                IMPORTANTE: Si el usuario menciona múltiples gastos (ej: "4000 en comida y 10000 en gasolina"), extrae CADA UNO por separado.
+                
                 Responde ÚNICAMENTE con este JSON:
                 {
-                    "amount": number,
-                    "category_id": "string-uuid",
-                    "description": "Limpiar descripción (ej: 'Pizza' en lugar de 'Cena con pizza 45000')",
-                    "emoji": "emoji sugerido"
+                    "transactions": [
+                        {
+                            "amount": number,
+                            "category_id": "string-uuid",
+                            "description": "Limpiar descripción (ej: 'Pizza')",
+                            "emoji": "emoji sugerido"
+                        }
+                    ]
                 }`
             },
             {
@@ -67,31 +117,42 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
         response_format: { type: "json_object" },
     });
 
-    const content = completion.choices[0]?.message?.content || '{}';
+    const content = completion.choices[0]?.message?.content || '{"transactions": []}';
     console.log('Respuesta AI:', content);
 
     const aiResult = JSON.parse(content);
-    const category = dbCategories?.find(c => c.id === aiResult.category_id) || { id: null, name: 'General', emoji: '📦' };
+    const transactions = (aiResult.transactions || []).map((t: any) => {
+        const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+        return {
+            id: crypto.randomUUID(),
+            amount: t.amount || 0,
+            category_id: t.category_id || category.id,
+            category: category,
+            description: t.description || text,
+            date: new Date().toISOString(),
+            emoji: t.emoji || category.emoji || '📦'
+        } as Transaction;
+    });
 
-    return {
-        id: crypto.randomUUID(),
-        amount: aiResult.amount || 0,
-        category_id: aiResult.category_id || category.id,
-        category: category,
-        description: aiResult.description || text,
-        date: new Date().toISOString(),
-        emoji: aiResult.emoji || category.emoji || '📦'
-    } as Transaction;
+    return transactions;
 }
 
 export async function saveTransaction(transaction: Transaction) {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+        return { success: false, error: 'Usuario no autenticado' };
+    }
+
     const { error } = await supabase
         .from('transactions')
         .insert([{
             amount: transaction.amount,
             category_id: transaction.category_id,
             description: transaction.description,
-            date: transaction.date
+            date: transaction.date,
+            user_id: user.id
         }]);
 
     if (error) {
@@ -101,4 +162,92 @@ export async function saveTransaction(transaction: Transaction) {
 
     revalidatePath('/');
     return { success: true };
+}
+
+export async function transcribeAudio(formData: FormData) {
+    const file = formData.get('file') as File;
+    if (!file) throw new Error('No se proporcionó ningún archivo de audio');
+
+    const transcription = await groq.audio.transcriptions.create({
+        file: file,
+        model: "whisper-large-v3",
+        response_format: "json",
+        language: "es",
+    });
+
+    return transcription.text;
+}
+
+export async function extractFromImage(formData: FormData): Promise<Transaction[] | AIAnswer> {
+    const file = formData.get('file') as File;
+    if (!file) throw new Error('No se proporcionó ninguna imagen');
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    const base64Image = buffer.toString('base64');
+
+    const supabase = await createClient()
+    const { data: dbCategories } = await supabase.from('categories').select('*');
+    const categoriesList = (dbCategories || []).map((c: any) => `${c.name} (ID: ${c.id})`).join(', ');
+
+    try {
+        const response = await groq.chat.completions.create({
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: `Eres un extractor de datos de recibos. Tu objetivo es convertir la imagen en JSON. 
+                        Contexto: Colombia. 
+                        Categorías disponibles (USA LOS IDs): [${categoriesList}].
+                        
+                        IMPORTANTE: Si el recibo tiene múltiples ítems claros que deben registrarse por separado, devuélvelos como una lista.
+                        
+                        Responde ÚNICAMENTE con este JSON:
+                        {
+                            "transactions": [
+                                {
+                                    "amount": number,
+                                    "category_id": "string-uuid",
+                                    "description": "Limpiar descripción (ej: 'Pizza')",
+                                    "emoji": "emoji sugerido"
+                                }
+                            ]
+                        }`
+                        },
+                        {
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${base64Image}`,
+                            },
+                        },
+                    ],
+                },
+            ],
+            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            response_format: { type: "json_object" },
+        });
+
+        const content = response.choices[0]?.message?.content || '{"transactions": []}';
+        const aiResult = JSON.parse(content);
+
+        const transactions = (aiResult.transactions || []).map((t: any) => {
+            const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+            return {
+                id: crypto.randomUUID(),
+                amount: t.amount || 0,
+                category_id: t.category_id || category.id,
+                category: category,
+                description: t.description || 'Gasto desde imagen',
+                date: new Date().toISOString(),
+                emoji: t.emoji || category.emoji || '📦'
+            } as Transaction;
+        });
+
+        return transactions;
+    } catch (error) {
+        console.error('Error al procesar imagen con IA:', error);
+        throw new Error('Error al analizar la imagen. Intenta con una foto más clara.');
+    }
 }
