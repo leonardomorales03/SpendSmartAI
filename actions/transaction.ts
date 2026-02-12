@@ -251,3 +251,102 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
         throw new Error('Error al analizar la imagen. Intenta con una foto más clara.');
     }
 }
+
+export async function getTransactions(
+  page: number = 1,
+  pageSize: number = 10,
+  filters?: {
+    category_id?: string;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+  }
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { data: [], count: 0, error: 'Usuario no autenticado' };
+
+  let query = supabase
+    .from('transactions')
+    .select('*, category:categories(name, emoji)', { count: 'exact' })
+    .eq('user_id', user.id)
+    .order('date', { ascending: false });
+
+  if (filters?.category_id && filters.category_id !== 'all') {
+    query = query.eq('category_id', filters.category_id);
+  }
+
+  if (filters?.startDate) {
+    query = query.gte('date', filters.startDate);
+  }
+
+  if (filters?.endDate) {
+    query = query.lte('date', filters.endDate);
+  }
+  
+  if (filters?.search) {
+      query = query.ilike('description', `%${filters.search}%`);
+  }
+
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, count, error } = await query.range(from, to);
+
+  if (error) {
+    console.error('Error fetching transactions:', error);
+    return { data: [], count: 0, error: error.message };
+  }
+
+  return { data, count };
+}
+
+export async function updateTransaction(id: string, updates: Partial<Transaction>) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: 'Usuario no autenticado' };
+
+    const { error } = await supabase
+        .from('transactions')
+        .update({
+            amount: updates.amount,
+            description: updates.description,
+            date: updates.date,
+            // category_id: updates.category_id, // TODO: Enable when we have a category selector
+        })
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error('Error updating transaction:', error);
+        return { success: false, error: error.message };
+    }
+    
+    revalidatePath('/');
+    revalidatePath('/transactions');
+    return { success: true };
+}
+
+export async function deleteTransaction(id: string) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: 'Usuario no autenticado' };
+
+    const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+    if (error) {
+        console.error('Error deleting transaction:', error);
+        return { success: false, error: error.message };
+    }
+    
+    revalidatePath('/');
+    revalidatePath('/transactions');
+    return { success: true };
+}

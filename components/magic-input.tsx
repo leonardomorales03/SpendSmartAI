@@ -7,7 +7,7 @@ import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, 
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
-export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transaction | AIAnswer | Transaction[]) => void }) {
+export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
     const [input, setInput] = useState('')
     const [isPending, startTransition] = useTransition()
     const [isRecording, setIsRecording] = useState(false)
@@ -16,24 +16,14 @@ export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transa
     const fileInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    // Helper to check if it's a question
+    // Refs para detección de silencio (declarados antes de usarse)
+    const silenceStartRef = useRef<number | null>(null);
+    const animationFrameRef = useRef<number | null>(null);
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const [silenceWarning, setSilenceWarning] = useState<number | null>(null);
+
+    // Helper to check if it's an question
     const isQuestion = input.trim().startsWith('?');
-
-    // Use Optimistic for immediate feedback if we had a list passed down, 
-    // but here we are just defining the input component. 
-    // The User Request asks for "Use useOptimistic to add the expense to the list immediately".
-    // This implies this component might wrap the list or be part of a parent that manages the list.
-    // For this step (Genera el código del MagicInput), I will focus on the Input logic 
-    // and assume it triggers an optimistic update via a parent or internal state if demonstrated.
-    // However, `useOptimistic` is usually used on the data passed TO the component.
-    // I will create a self-contained demo where this component *manages* a list to show the effect,
-    // or just implements the submission logic that would trigger it.
-
-    // Better approach: The Prompt asks "Genera el código del MagicInput con la lógica optimista".
-    // Optimistic logic usually resides where the data state is. 
-    // I'll show how this component invokes the action, and I'll include a "TransactionList" 
-    // in the next step or integrated here to demonstrate. 
-    // For now, I will implement the handleSubmit that calls the action.
 
     const getSupportedMimeType = () => {
         const types = [
@@ -53,16 +43,20 @@ export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transa
         return ''; // Let browser decide default
     };
 
-    const [silenceWarning, setSilenceWarning] = useState<number | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const silenceStartRef = useRef<number | null>(null);
-    const animationFrameRef = useRef<number | null>(null);
-
-    // ... (resto de helper functions)
+    const stopRecording = (autoStopped = false) => {
+        if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
+            mediaRecorder.current.stop();
+            setIsRecording(false);
+            mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
+            
+            if (autoStopped) {
+                toast.info('Grabación detenida por silencio 🤫');
+            }
+        }
+    };
 
     const detectSilence = (analyser: AnalyserNode, dataArray: Uint8Array) => {
-        analyser.getByteFrequencyData(dataArray);
+        analyser.getByteFrequencyData(dataArray as any);
         
         // Calcular volumen promedio
         let sum = 0;
@@ -191,18 +185,6 @@ export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transa
         }
     };
 
-    const stopRecording = (autoStopped = false) => {
-        if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
-            mediaRecorder.current.stop();
-            setIsRecording(false);
-            mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
-            
-            if (autoStopped) {
-                toast.info('Grabación detenida por silencio 🤫');
-            }
-        }
-    };
-
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -219,16 +201,18 @@ export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transa
                     ? await extractFromPdf(formData)
                     : await extractFromImage(formData);
 
-                if (onAddTransaction) {
-                    onAddTransaction(result);
-                }
-
                 if (Array.isArray(result)) {
+                    if (onTransactionAdded) {
+                        onTransactionAdded(result);
+                    }
                     for (const t of result) {
                         await saveTransaction(t);
                     }
                     toast.success(`${result.length} gastos procesados y guardados ✨`);
                 } else if (!('type' in result)) {
+                    if (onTransactionAdded) {
+                        onTransactionAdded([result as Transaction]);
+                    }
                     await saveTransaction(result as Transaction);
                     toast.success('Documento procesado y guardado ✨');
                 }
@@ -246,33 +230,24 @@ export function MagicInput({ onAddTransaction }: { onAddTransaction?: (t: Transa
         const rawText = input;
         setInput(''); // Clear immediately
 
-        // We can't do full 'useOptimistic' INSIDE the input for the LIST, 
-        // unless the list is part of this component's props or context.
-        // I will assume the parent handles the actual optimistic list, 
-        // BUT I will implement a local "Optimistic Preview" if needed.
-
-        // However, the standard pattern is:
-        // 1. User submits text.
-        // 2. We guess the details (or use a temporary placeholder).
-        // 3. We call the server action.
-
         startTransition(async () => {
             try {
                 // Call simulated AI
                 const result = await extractTransactionDetails(rawText);
 
-                // Allow parent to update list or handle data (Transaction OR Answer)
-                if (onAddTransaction) {
-                    onAddTransaction(result);
-                }
-
                 if (Array.isArray(result)) {
+                    if (onTransactionAdded) {
+                        onTransactionAdded(result);
+                    }
                     // It's a list of transactions
                     for (const t of result) {
                         await saveTransaction(t);
                     }
                     toast.success(`${result.length} gastos registrados mágicamente ✨`);
                 } else if (!('type' in result)) {
+                    if (onTransactionAdded) {
+                        onTransactionAdded([result as Transaction]);
+                    }
                     // It's a single transaction (fallback)
                     await saveTransaction(result as Transaction);
                     toast.success('Gasto registrado mágicamente ✨');
