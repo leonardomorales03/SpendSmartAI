@@ -1,95 +1,88 @@
 'use client'
 
-import { useState, useOptimistic } from 'react'
-import { Transaction, AIAnswer } from '@/lib/types'
+import { useState } from 'react'
 import { MagicInput } from '@/components/magic-input'
-import { TransactionItem } from '@/components/transaction-item'
 import { SpendingChart } from '@/components/spending-chart'
+import { CategoryChart } from '@/components/category-chart'
+import { StatsGrid } from '@/components/stats-grid'
 import { SpendingVelocity } from '@/components/spending-velocity'
 import { SubscriptionWidget } from '@/components/subscription-widget'
-import { AIResult } from '@/components/ai-result'
-import { StatsGrid } from '@/components/stats-grid'
-import { CategoryChart } from '@/components/category-chart'
-import { AnimatePresence } from 'framer-motion'
+import { ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 
-export function Dashboard({ initialTransactions, initialBudget }: { initialTransactions: Transaction[], initialBudget: number }) {
-    const [aiAnswer, setAiAnswer] = useState<AIAnswer | null>(null)
+interface DashboardProps {
+  initialTransactions: any[]
+  budget: number
+}
 
-    const [optimisticTransactions, addOptimisticTransaction] = useOptimistic(
-        initialTransactions,
-        (state, newTransaction: Transaction) => [newTransaction, ...state]
-    )
+export function Dashboard({ initialTransactions, budget }: DashboardProps) {
+  // We need to keep this state to update UI when new transactions are added
+  const [transactions, setTransactions] = useState(initialTransactions)
+  
+  const handleTransactionAdded = (newTransactions: any[]) => {
+    // Add new transactions to the top of the list
+    setTransactions(prev => [...newTransactions, ...prev])
+  }
 
-    const handleAddTransaction = (result: Transaction | AIAnswer | Transaction[]) => {
-        // Check if it's an array of transactions
-        if (Array.isArray(result)) {
-            setAiAnswer(null);
-            result.forEach(t => addOptimisticTransaction(t));
-            return;
-        }
+  return (
+    <div className="space-y-6">
+      <MagicInput onTransactionAdded={handleTransactionAdded} />
+      
+      <StatsGrid transactions={transactions} />
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SpendingChart transactions={transactions} budget={budget} />
+        <CategoryChart transactions={transactions} />
+      </div>
 
-        // Check if it is an Answer or a single Transaction
-        if ('type' in result && result.type === 'answer') {
-            setAiAnswer(result);
-        } else {
-            const t = result as Transaction;
-            setAiAnswer(null); // Clear previous answer if adding a new expense
-            if (t.id) { // Ensure it's a valid transaction object
-                addOptimisticTransaction(t);
-            }
-        }
-    }
-
-    return (
-        <div className="max-w-4xl mx-auto space-y-10 pb-20">
-            {/* 1. MAGIC INPUT (The Star Feature) */}
-            <section className="sticky top-4 z-20 backdrop-blur-xl bg-background/30 p-2 rounded-2xl border border-white/5 shadow-lg group">
-                <MagicInput onAddTransaction={handleAddTransaction} />
-            </section>
-
-            {/* 2. TOTAL SPENDING & KPIs */}
-            <div className="space-y-6">
-                <SpendingChart transactions={optimisticTransactions} initialBudget={initialBudget} />
-                <StatsGrid transactions={optimisticTransactions} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <SpendingVelocity transactions={transactions} />
+        <div className="space-y-6">
+          <SubscriptionWidget />
+          
+          {/* Quick Access to Full History */}
+          <div className="p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                Últimos Movimientos
+              </h3>
+              <Link 
+                href="/transactions" 
+                className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+              >
+                Ver todo <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
-
-            {/* AI RESULT AREA (Right below input) */}
-            <AnimatePresence>
-                {aiAnswer && <AIResult answer={aiAnswer} />}
-            </AnimatePresence>
-
-            {/* 3. CHARTS GRID (Analysis) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <CategoryChart transactions={optimisticTransactions} />
-                <SpendingVelocity transactions={optimisticTransactions} />
-            </div>
-
-            {/* 4. UPCOMING PAYMENTS */}
-            <div className="max-w-md">
-                <SubscriptionWidget />
-            </div>
-
-            {/* 5. SMART LIST */}
-            <section className="space-y-4">
-                <div className="flex justify-between items-center text-muted-foreground text-sm font-medium">
-                    <h3>Transacciones Recientes</h3>
-                    <span>Hoy</span>
-                </div>
-
-                <div className="space-y-3">
-                    <AnimatePresence initial={false} mode='popLayout'>
-                        {optimisticTransactions.length === 0 ? (
-                            <div className="text-center py-10 text-gray-400">
-                                No hay gastos aún. ¡Prueba la caja mágica! ✨
-                            </div>
-                        ) : (
-                            optimisticTransactions.map((t) => (
-                                <TransactionItem key={t.id} transaction={t} />
-                            ))
-                        )}
-                    </AnimatePresence>
-                </div>
-            </section>
+            
+            {transactions.length > 0 ? (
+              <div className="space-y-3">
+                {transactions.slice(0, 3).map((t) => (
+                  <div key={t.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{t.emoji || '📦'}</span>
+                      <div>
+                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                          {t.description}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {new Date(t.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                      ${t.amount.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-zinc-500 text-center py-4">
+                No hay movimientos recientes
+              </p>
+            )}
+          </div>
         </div>
-    )
+      </div>
+    </div>
+  )
 }

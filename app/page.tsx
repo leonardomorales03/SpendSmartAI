@@ -53,19 +53,23 @@ export default async function Home() {
         </h1>
         <div className="flex flex-col items-center justify-center gap-2">
           <WisdomBanner />
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
-            <span>{user.email}</span>
-            <span className="text-zinc-700">|</span>
-            <form action="/auth/signout" method="post">
-                <button className="hover:text-white transition-colors" type="submit">
-                  Cerrar Sesión
-                </button>
-            </form>
-          </div>
+    <div className="flex items-center gap-3 text-xs text-zinc-500">
+      <span>{user.email}</span>
+      <span className="text-zinc-700">|</span>
+      <a href="/transactions" className="hover:text-white transition-colors">
+        Historial
+      </a>
+      <span className="text-zinc-700">|</span>
+      <form action="/auth/signout" method="post">
+          <button className="hover:text-white transition-colors" type="submit">
+            Cerrar Sesión
+          </button>
+      </form>
+    </div>
         </div>
       </header>
 
-      <Dashboard initialTransactions={transactions} initialBudget={initialBudget} />
+      <Dashboard initialTransactions={transactions} budget={initialBudget} />
     </main>
   );
 }

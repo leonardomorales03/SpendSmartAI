@@ -39,8 +39,7 @@ export const registerSchema = z
       }, 'El dominio del correo no está permitido (usa Gmail, Outlook, Yahoo, etc.)'),
     phone: z.string().optional(),
     birthDate: z.date({
-      required_error: 'La fecha de nacimiento es requerida',
-      invalid_type_error: 'Formato de fecha inválido',
+      message: 'La fecha de nacimiento es requerida',
     }).refine((date) => {
       const today = new Date()
       const age = today.getFullYear() - date.getFullYear()

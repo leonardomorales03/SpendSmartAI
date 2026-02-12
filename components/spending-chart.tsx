@@ -4,8 +4,8 @@ import { Transaction } from '@/lib/types'
 import { Pencil, Check, Loader2 } from 'lucide-react'
 import { updateBudget } from '@/actions/budget'
 
-export function SpendingChart({ transactions, initialBudget }: { transactions: Transaction[], initialBudget: number }) {
-    const [budget, setBudget] = useState(initialBudget);
+export function SpendingChart({ transactions, budget }: { transactions: Transaction[], budget: number }) {
+    const [currentBudget, setCurrentBudget] = useState(budget);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, startTransition] = useTransition();
     const inputRef = useRef<HTMLInputElement>(null);
@@ -15,7 +15,7 @@ export function SpendingChart({ transactions, initialBudget }: { transactions: T
             const newVal = parseFloat(inputRef.current.value);
             if (!isNaN(newVal) && newVal > 0) {
                 // Optimistic update
-                setBudget(newVal);
+                setCurrentBudget(newVal);
                 
                 startTransition(async () => {
                     await updateBudget(newVal);
@@ -26,7 +26,7 @@ export function SpendingChart({ transactions, initialBudget }: { transactions: T
     }
 
     const total = transactions.reduce((acc, t) => acc + t.amount, 0);
-    const percentage = Math.min((total / budget) * 100, 100);
+    const percentage = Math.min((total / currentBudget) * 100, 100);
 
     return (
         <div className="p-6 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl text-white shadow-xl border border-indigo-800/50 relative overflow-hidden group">
@@ -47,7 +47,7 @@ export function SpendingChart({ transactions, initialBudget }: { transactions: T
                             <input
                                 ref={inputRef}
                                 type="number"
-                                defaultValue={budget}
+                                defaultValue={currentBudget}
                                 className="w-24 px-2 py-1 text-sm bg-black/20 rounded border border-indigo-500/50 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 text-white"
                                 autoFocus
                                 onKeyDown={(e) => e.key === 'Enter' && handleSave()}
@@ -64,7 +64,7 @@ export function SpendingChart({ transactions, initialBudget }: { transactions: T
                             className="flex items-center gap-2 justify-end cursor-pointer group/edit hover:text-indigo-200 transition-colors"
                             onClick={() => !isSaving && setIsEditing(true)}
                         >
-                            <p className="font-semibold text-lg">${budget.toLocaleString('es-CO')}</p>
+                            <p className="font-semibold text-lg">${currentBudget.toLocaleString('es-CO')}</p>
                             {isSaving ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
