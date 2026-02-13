@@ -100,13 +100,13 @@ Ahora el registro de gastos es ultra fluido gracias a la integración de intelig
 
 Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permitir una personalización real.
 
-### 1. Gestión de Categorías (Prioridad Alta)
+### 1. Gestión de Categorías (Prioridad Alta) [x]
 *   **Problema:** Actualmente las categorías son estáticas o predefinidas.
 *   **Solución:** CRUD completo de categorías.
 *   **Acciones:**
-    *   [ ] Crear tabla `categories` vinculada al usuario (o globales + personalizadas).
-    *   [ ] Interfaz para crear, editar y eliminar categorías.
-    *   [ ] Asignación de colores e iconos (emojis) personalizados.
+    *   [x] Crear tabla `categories` vinculada al usuario (o globales + personalizadas).
+    *   [x] Interfaz para crear, editar y eliminar categorías.
+    *   [x] Asignación de colores e iconos (emojis) personalizados.
 
 ### 2. Módulo de Presupuestos (Budget)
 *   **Problema:** El usuario registra gastos pero no tiene una meta o límite visual.
