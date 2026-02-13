@@ -38,7 +38,7 @@ Dado el alto CAC en FinTech ($15-$30 USD), la estrategia inicial es 100% orgáni
 
 ---
 
-## �🛠 Fase 1: Roadmap a Producción (Infraestructura Real)
+## �� Fase 1: Roadmap a Producción (Infraestructura Real)
 
 ### 1. [x] Conexión Real a Base de Datos (Supabase)
 *   **Estado actual:** ¡Completado! Los datos ya se guardan y leen desde Supabase.

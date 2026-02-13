@@ -60,6 +60,10 @@ export default async function Home() {
         Historial
       </a>
       <span className="text-zinc-700">|</span>
+      <a href="/categories" className="hover:text-white transition-colors">
+        Categorías
+      </a>
+      <span className="text-zinc-700">|</span>
       <form action="/auth/signout" method="post">
           <button className="hover:text-white transition-colors" type="submit">
             Cerrar Sesión
