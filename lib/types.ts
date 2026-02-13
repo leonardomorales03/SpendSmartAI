@@ -2,6 +2,7 @@ export type Category = {
     id: string;
     name: string;
     emoji: string;
+    user_id?: string | null;
 };
 
 export type Transaction = {

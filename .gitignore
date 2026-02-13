@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # SpendSmart AI specific
-ROADMAP.md
+# ROADMAP.md
 
 # IDEs
 .vscode/

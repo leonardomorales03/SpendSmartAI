@@ -7,8 +7,37 @@ create table if not exists categories (
   name text not null,
   emoji text,
   icon text,
+  user_id uuid references auth.users(id), -- Nullable for global categories
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
+
+-- Enable RLS on categories
+alter table categories enable row level security;
+
+-- Policy: Everyone can read global categories (user_id is null)
+create policy "Global categories are viewable by everyone"
+  on categories for select
+  using (user_id is null);
+
+-- Policy: Users can read their own categories
+create policy "Users can view their own categories"
+  on categories for select
+  using (auth.uid() = user_id);
+
+-- Policy: Users can insert their own categories
+create policy "Users can insert their own categories"
+  on categories for insert
+  with check (auth.uid() = user_id);
+
+-- Policy: Users can update their own categories
+create policy "Users can update their own categories"
+  on categories for update
+  using (auth.uid() = user_id);
+
+-- Policy: Users can delete their own categories
+create policy "Users can delete their own categories"
+  on categories for delete
+  using (auth.uid() = user_id);
 
 -- Create transactions table
 create table if not exists transactions (
