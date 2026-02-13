@@ -4,7 +4,41 @@ Este documento detalla los pasos necesarios para convertir la maqueta actual en 
 
 ---
 
-## 🛠 Fase 1: Roadmap a Producción (Infraestructura Real)
+## � Análisis de Viabilidad y Estrategia de Crecimiento (Evaluación 2025)
+
+Esta sección documenta la estrategia de negocio y métricas clave para validar el éxito del MVP antes del lanzamiento masivo.
+
+### 1. Potencial de Monetización (7.5/10)
+*   **Veredicto:** Alta probabilidad de éxito debido a la resolución de la fricción #1 (ingreso manual de datos).
+*   **Diferencial Único:** "Magic Input" (Voz/Imagen) vs. competencia tradicional (5-7 clics).
+*   **Riesgo:** Retención promedio del sector (4.5% a 30 días). La experiencia de usuario debe ser impecable.
+
+### 2. Proyección Financiera (Año 1)
+*Modelo Freemium ($4.99/mes)*
+
+| Escenario | Usuarios Activos | Conversión | Ingresos Anuales |
+| :--- | :---: | :---: | :---: |
+| **Pesimista** | 1,000 | 1.5% | ~$750 |
+| **Realista** | 10,000 | 3.5% | ~$17,500 |
+| **Optimista** | 50,000 | 5.0% | ~$125,000 |
+
+### 3. Funnel de Crecimiento Objetivo
+Para alcanzar el escenario realista ($17.5k/año):
+1.  **Adquisición:** 75,000 descargas.
+2.  **Activación (Registro):** 30,000 usuarios (40%).
+3.  **Retención (MAU):** 10,000 usuarios (33%).
+4.  **Monetización:** 350 suscriptores (3.5%).
+
+### 4. Estrategia de Viralización (Growth Hacking)
+Dado el alto CAC en FinTech ($15-$30 USD), la estrategia inicial es 100% orgánica:
+*   **TikTok/Reels "Wow":** Videos cortos mostrando el registro por voz en tiempo real ("Gasté 12k en café").
+*   **Referidos Gamificados:** "Invita a un amigo = 1 mes Premium".
+*   **ASO de Nicho:** Keywords como "AI budget", "Receipt scanner", "Voice expense".
+*   **Micro-Influencers:** Intercambio de licencias Lifetime por menciones.
+
+---
+
+## �🛠 Fase 1: Roadmap a Producción (Infraestructura Real)
 
 ### 1. [x] Conexión Real a Base de Datos (Supabase)
 *   **Estado actual:** ¡Completado! Los datos ya se guardan y leen desde Supabase.
