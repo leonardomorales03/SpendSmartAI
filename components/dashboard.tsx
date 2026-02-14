@@ -7,6 +7,7 @@ import { CategoryChart } from '@/components/category-chart'
 import { StatsGrid } from '@/components/stats-grid'
 import { SpendingVelocity } from '@/components/spending-velocity'
 import { SubscriptionWidget } from '@/components/subscription-widget'
+import { PredictiveInsights } from '@/components/predictive-insights'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
@@ -36,7 +37,10 @@ export function Dashboard({ initialTransactions, budget }: DashboardProps) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SpendingVelocity transactions={transactions} />
+        <div className="space-y-6">
+          <PredictiveInsights transactions={transactions} budget={budget} />
+          <SpendingVelocity transactions={transactions} />
+        </div>
         <div className="space-y-6">
           <SubscriptionWidget />
           
