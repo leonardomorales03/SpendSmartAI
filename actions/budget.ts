@@ -119,20 +119,45 @@ export async function getBudgetProgress(month: number = new Date().getMonth(), y
         // 1. Get Global Budget
         const globalBudget = await getBudget();
 
-        // 2. Get Transactions for the month
         // Note: Javascript months are 0-indexed, so we need to be careful with dates
         const startDate = new Date(year, month, 1).toISOString();
         // Get last day of month: day 0 of next month
         const endDate = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
 
-        const { data: transactions } = await supabase
-            .from('transactions')
-            .select('amount, category_id')
-            .eq('user_id', user.id)
-            .gte('date', startDate)
-            .lte('date', endDate);
+        // 2. Get Aggregated Spending via RPC (Performance Optimization)
+        const { data: aggregatedSpending, error: rpcError } = await supabase
+            .rpc('get_monthly_category_spending', {
+                p_user_id: user.id,
+                p_start_date: startDate,
+                p_end_date: endDate
+            });
 
-        // 3. Get All Categories (to map names/emojis)
+        const spendingByCategory = new Map<string, number>();
+
+        if (rpcError) {
+            console.warn('Performance optimization (RPC) unavailable, falling back to raw query:', rpcError.message);
+            const { data: transactions } = await supabase
+                .from('transactions')
+                .select('amount, category_id')
+                .eq('user_id', user.id)
+                .gte('date', startDate)
+                .lte('date', endDate);
+
+            transactions?.forEach(t => {
+                if (t.category_id) {
+                    const current = spendingByCategory.get(t.category_id) || 0;
+                    spendingByCategory.set(t.category_id, current + t.amount);
+                }
+            });
+        } else if (aggregatedSpending) {
+            aggregatedSpending.forEach((row: any) => {
+                if (row.category_id) {
+                    spendingByCategory.set(row.category_id, Number(row.total_spent));
+                }
+            });
+        }
+
+        // 3. Get All Categories
         const { data: categories } = await supabase
             .from('categories')
             .select('*')
@@ -145,7 +170,8 @@ export async function getBudgetProgress(month: number = new Date().getMonth(), y
             .eq('user_id', user.id);
 
         // 5. Aggregate Data
-        const totalSpent = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+        let totalSpent = 0;
+        spendingByCategory.forEach(amount => totalSpent += amount);
         
         const categoryMap = new Map<string, { spent: number; budget: number; name: string; emoji: string }>();
 
@@ -153,7 +179,7 @@ export async function getBudgetProgress(month: number = new Date().getMonth(), y
         categories?.forEach(cat => {
             categoryMap.set(cat.id, {
                 spent: 0,
-                budget: 0, // Default 0 means no limit
+                budget: 0,
                 name: cat.name,
                 emoji: cat.emoji || '📦'
             });
@@ -168,10 +194,10 @@ export async function getBudgetProgress(month: number = new Date().getMonth(), y
         });
 
         // Add spending info
-        transactions?.forEach(t => {
-            if (t.category_id && categoryMap.has(t.category_id)) {
-                const entry = categoryMap.get(t.category_id)!;
-                entry.spent += Number(t.amount);
+        spendingByCategory.forEach((amount, categoryId) => {
+            if (categoryMap.has(categoryId)) {
+                const entry = categoryMap.get(categoryId)!;
+                entry.spent = amount;
             }
         });
 
