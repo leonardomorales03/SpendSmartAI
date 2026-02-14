@@ -60,6 +60,10 @@ export default async function Home() {
         Historial
       </a>
       <span className="text-zinc-700">|</span>
+      <a href="/budget" className="hover:text-white transition-colors">
+        Presupuesto
+      </a>
+      <span className="text-zinc-700">|</span>
       <a href="/categories" className="hover:text-white transition-colors">
         Categorías
       </a>

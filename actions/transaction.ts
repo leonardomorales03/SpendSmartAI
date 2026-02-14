@@ -58,15 +58,23 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
             .eq('user_id', user.id)
             .limit(20);
 
+        // NUEVO: Obtenemos los presupuestos por categoría
+        const { data: categoryBudgets } = await supabase
+            .from('category_budgets')
+            .select('amount, category:categories(name)')
+            .eq('user_id', user.id);
+
         const completion = await groq.chat.completions.create({
             messages: [
                 {
                     role: "system",
-                    content: "Eres un asistente financiero experto. Responde preguntas sobre los gastos del usuario basados en los datos proporcionados. Sé breve y amigable. Si no hay datos, dilo."
+                    content: "Eres un asistente financiero experto. Responde preguntas sobre los gastos y presupuestos del usuario basados en los datos proporcionados. Puedes calcular totales y resumir información. Sé breve y amigable. Si no hay datos, dilo."
                 },
                 {
                     role: "user",
-                    content: `Datos de gastos: ${JSON.stringify(recentTransactions)}. Pregunta: ${text.substring(1)}`
+                    content: `Datos de gastos recientes: ${JSON.stringify(recentTransactions)}. 
+                    Presupuestos por categoría: ${JSON.stringify(categoryBudgets)}. 
+                    Pregunta: ${text.substring(1)}`
                 },
             ],
             model: "llama-3.3-70b-versatile",
