@@ -68,6 +68,10 @@ export default async function Home() {
         Categorías
       </a>
       <span className="text-zinc-700">|</span>
+      <a href="/chat" className="hover:text-white transition-colors text-emerald-400 font-medium">
+        Chat IA ✨
+      </a>
+      <span className="text-zinc-700">|</span>
       <form action="/auth/signout" method="post">
           <button className="hover:text-white transition-colors" type="submit">
             Cerrar Sesión

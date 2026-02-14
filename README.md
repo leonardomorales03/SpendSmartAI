@@ -71,6 +71,27 @@ Interactúa con tus datos financieros mediante lenguaje natural. Pregunta a la I
     ```
     Visita `http://localhost:3000` para ver la app en acción.
 
+---
+
+## 🗺️ Roadmap
+
+### ✅ Fase 1: MVP Core (Completado)
+*   [x] Autenticación Segura (Supabase Auth & RLS).
+*   [x] CRUD de Transacciones en tiempo real.
+*   [x] **Magic Input**: Extracción de datos de gastos con IA.
+*   [x] Dashboard de Métricas Financieras.
+*   [x] Módulo de Presupuestos Inteligentes (Regla 50/30/20).
+
+### 🚧 Fase 2: IA Financiera Avanzada (En Progreso)
+*   [x] **Chat Contextual (RAG)**: Conversación natural con tus datos financieros ("¿Cuánto gasté en Uber el mes pasado?").
+*   [ ] **Detección de Anomalías**: Alertas proactivas sobre gastos inusuales.
+*   [ ] **Insights Predictivos**: "A este ritmo, superarás tu presupuesto en 5 días".
+
+### 🔜 Fase 3: Expansión y Retención
+*   [ ] **Reportes Exportables**: PDF/Excel mensuales para contabilidad.
+*   [ ] **Gamificación**: Badges por ahorro y cumplimiento de metas.
+*   [ ] **Modo Offline (PWA)**: Registro de gastos sin conexión.
+
 
 ## 📄 Licencia
 Este proyecto es privado y se desarrolla con fines de portafolio profesional.
