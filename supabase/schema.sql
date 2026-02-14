@@ -67,6 +67,9 @@ create table if not exists user_settings (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id), -- Linked to Supabase Auth
   monthly_budget decimal(10, 2) default 1000000,
+  currency text default 'COP',
+  locale text default 'es-CO',
+  language text default 'es',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

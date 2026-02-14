@@ -3,8 +3,10 @@ import { useState, useRef, useTransition } from 'react'
 import { Transaction } from '@/lib/types'
 import { Pencil, Check, Loader2 } from 'lucide-react'
 import { updateBudget } from '@/actions/budget'
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function SpendingChart({ transactions, budget }: { transactions: Transaction[], budget: number }) {
+    const { formatCurrency, t } = useSettings()
     const [currentBudget, setCurrentBudget] = useState(budget);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, startTransition] = useTransition();
@@ -36,11 +38,11 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
 
             <div className="flex justify-between items-end mb-6 relative">
                 <div>
-                    <p className="text-indigo-300 text-sm font-medium mb-1">Gasto Total (Mes)</p>
-                    <h2 className="text-4xl font-bold tracking-tight">${total.toLocaleString('es-CO')}</h2>
+                    <p className="text-indigo-300 text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
+                    <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(total)}</h2>
                 </div>
                 <div className="text-right">
-                    <p className="text-indigo-300 text-xs mb-1">Presupuesto</p>
+                    <p className="text-indigo-300 text-xs mb-1">{t('dashboard.budget')}</p>
 
                     {isEditing ? (
                         <div className="flex items-center gap-2 justify-end">
@@ -64,7 +66,7 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
                             className="flex items-center gap-2 justify-end cursor-pointer group/edit hover:text-indigo-200 transition-colors"
                             onClick={() => !isSaving && setIsEditing(true)}
                         >
-                            <p className="font-semibold text-lg">${currentBudget.toLocaleString('es-CO')}</p>
+                            <p className="font-semibold text-lg">{formatCurrency(currentBudget)}</p>
                             {isSaving ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
@@ -87,7 +89,7 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
             <div className="flex justify-between items-center mt-3 text-xs text-indigo-300/80 font-medium">
                 <span>0%</span>
                 <span className={percentage > 100 ? 'text-red-300 font-bold' : ''}>
-                    {percentage.toFixed(1)}% usado
+                    {percentage.toFixed(1)}% {t('dashboard.used')}
                 </span>
             </div>
         </div>

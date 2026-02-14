@@ -4,34 +4,36 @@ import { Transaction } from '@/lib/types'
 import { calculateStats } from '@/lib/stats'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Receipt, Pizza, Activity } from 'lucide-react'
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function StatsGrid({ transactions }: { transactions: Transaction[] }) {
+    const { formatCurrency, t } = useSettings()
     const stats = calculateStats(transactions);
 
     const items = [
         {
-            title: 'Total del mes',
-            value: `$${stats.totalMonth.toLocaleString('es-CO')}`,
-            sub: `${stats.diffPercent > 0 ? '+' : ''}${stats.diffPercent.toFixed(1)}% vs mes anterior`,
+            title: t('dashboard.totalMonth'),
+            value: formatCurrency(stats.totalMonth),
+            sub: `${stats.diffPercent > 0 ? '+' : ''}${stats.diffPercent.toFixed(1)}% ${t('dashboard.vsPrevious')}`,
             icon: <TrendingUp className="w-5 h-5 text-indigo-400" />,
             trend: stats.diffPercent > 0 ? 'up' : 'down'
         },
         {
-            title: 'Transacciones',
+            title: t('dashboard.transactions'),
             value: stats.count.toString(),
-            sub: 'Movimientos este mes',
+            sub: t('dashboard.transactionsSub'),
             icon: <Receipt className="w-5 h-5 text-cyan-400" />,
         },
         {
-            title: 'Categoría top',
+            title: t('dashboard.topCategory'),
             value: stats.topCategory.name,
-            sub: `${stats.topCategory.percent.toFixed(0)}% del total`,
+            sub: `${stats.topCategory.percent.toFixed(0)}% ${t('dashboard.topCategorySub')}`,
             icon: <span className="text-xl">{stats.topCategory.emoji}</span>,
         },
         {
-            title: 'Promedio diario',
-            value: `$${stats.dailyAvg.toLocaleString('es-CO', { maximumFractionDigits: 0 })}`,
-            sub: 'Gasto rítmico',
+            title: t('dashboard.dailyAvg'),
+            value: formatCurrency(stats.dailyAvg),
+            sub: t('dashboard.dailyAvgSub'),
             icon: <Activity className="w-5 h-5 text-pink-400" />,
         }
     ];

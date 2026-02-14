@@ -108,14 +108,14 @@ Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permiti
     *   [x] Interfaz para crear, editar y eliminar categorías.
     *   [x] Asignación de colores e iconos (emojis) personalizados.
 
-### 2. Módulo de Presupuestos (Budget)
+### 2. Módulo de Presupuestos (Budget) [x]
 *   **Problema:** El usuario registra gastos pero no tiene una meta o límite visual.
 *   **Solución:** Sistema de alertas y barras de progreso.
 *   **Acciones:**
-    *   [ ] Definir presupuesto mensual global.
-    *   [ ] Definir presupuestos por categoría (ej: "Solo $200k en comida").
-    *   [ ] Visualización en el Dashboard: Barra de progreso "Gastado vs Presupuesto".
-    *   [ ] Alertas visuales (amarillo/rojo) al acercarse al límite.
+    *   [x] Definir presupuesto mensual global.
+    *   [x] Definir presupuestos por categoría (ej: "Solo $200k en comida").
+    *   [x] Visualización en el Dashboard: Barra de progreso "Gastado vs Presupuesto".
+    *   [x] Alertas visuales (amarillo/rojo) al acercarse al límite.
 
 ### 3. [x] Gamificación (Badges y Niveles)
 *   **Problema:** Falta de incentivos para el registro diario.
@@ -126,13 +126,15 @@ Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permiti
     *   [x] Página de Logros (`/achievements`) y visualización de nivel.
     *   [x] *Nota: Leaderboard eliminado por privacidad.*
 
-### 4. Perfil y Ajustes
+### 4. Perfil y Ajustes [x]
 *   **Problema:** No se pueden cambiar datos personales ni preferencias.
-*   **Solución:** Sección de configuración de usuario.
+*   **Solución:** Sección de configuración de usuario completa.
 *   **Acciones:**
-    *   [ ] Página `/settings` o `/profile`.
-    *   [ ] Cambio de contraseña y actualización de foto de perfil.
-    *   [ ] Configuración de moneda base (COP/USD) y formato de fecha.
+    *   [x] Página `/settings` con pestañas (Perfil, Preferencias, Seguridad).
+    *   [x] Cambio de contraseña seguro con Supabase Auth.
+    *   [x] Selección de avatares predeterminados (Estilo Bottts) y actualización de nombre visible.
+    *   [x] Configuración de moneda base (COP/USD/EUR/MXN) con conversión histórica inteligente.
+    *   [x] Internacionalización (Español/Inglés) en tiempo real.
 
 ### 5. Gestión Real de Suscripciones
 *   **Problema:** El widget de suscripciones es informativo/estático en algunos casos.
@@ -145,10 +147,10 @@ Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permiti
 
 ---
 
-## 🌍 Fase 5: Gestión de Moneda Inteligente (Multi-divisa)
-*   **Funcionalidad:** Perfil de usuario con moneda base.
-*   **Detección Contextual:** IA detecta moneda si se menciona (ej: "10 USD").
-*   **Conversión:** Integrar API de tipos de cambio.
+## 🌍 Fase 5: Gestión de Moneda Inteligente (Multi-divisa) [x]
+*   **Funcionalidad:** Perfil de usuario con moneda base. [x]
+*   **Detección Contextual:** IA detecta moneda si se menciona (ej: "10 USD"). [x]
+*   **Conversión:** Integrar API de tipos de cambio. [x]
 
 ---
 

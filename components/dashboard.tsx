@@ -8,10 +8,11 @@ import { StatsGrid } from '@/components/stats-grid'
 import { SpendingVelocity } from '@/components/spending-velocity'
 import { SubscriptionWidget } from '@/components/subscription-widget'
 import { PredictiveInsights } from '@/components/predictive-insights'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, Settings } from 'lucide-react'
 import Link from 'next/link'
 
 import { LevelCard } from '@/components/gamification/level-card'
+import { useSettings } from '@/components/providers/settings-provider'
 
 interface DashboardProps {
   initialTransactions: any[]
@@ -20,6 +21,7 @@ interface DashboardProps {
 }
 
 export function Dashboard({ initialTransactions, budget, userProgress }: DashboardProps) {
+  const { t, formatCurrency } = useSettings()
   // We need to keep this state to update UI when new transactions are added
   const [transactions, setTransactions] = useState(initialTransactions)
   
@@ -29,8 +31,17 @@ export function Dashboard({ initialTransactions, budget, userProgress }: Dashboa
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="space-y-6 relative">
+      <div className="absolute -top-2 right-0 z-10">
+        <Link 
+            href="/settings" 
+            className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full inline-flex"
+        >
+            <Settings className="w-5 h-5" />
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div className="md:col-span-2">
             <MagicInput onTransactionAdded={handleTransactionAdded} />
         </div>
@@ -66,13 +77,13 @@ export function Dashboard({ initialTransactions, budget, userProgress }: Dashboa
           <div className="p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                Últimos Movimientos
+                {t('dashboard.recentTransactions')}
               </h3>
               <Link 
                 href="/transactions" 
                 className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
               >
-                Ver todo <ArrowRight className="w-4 h-4" />
+                {t('dashboard.viewAll')} <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
             
@@ -92,14 +103,14 @@ export function Dashboard({ initialTransactions, budget, userProgress }: Dashboa
                       </div>
                     </div>
                     <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      ${t.amount.toLocaleString()}
+                      {formatCurrency(t.amount)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="text-sm text-zinc-500 text-center py-4">
-                No hay movimientos recientes
+                {t('dashboard.noTransactions')}
               </p>
             )}
           </div>

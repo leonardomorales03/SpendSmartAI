@@ -7,8 +7,10 @@ import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, 
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import confetti from 'canvas-confetti'
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
+    const { t } = useSettings()
     const [input, setInput] = useState('')
     const [isPending, startTransition] = useTransition()
     const [isRecording, setIsRecording] = useState(false)
@@ -51,7 +53,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
             mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
             
             if (autoStopped) {
-                toast.info('Grabación detenida por silencio 🤫');
+                toast.info(t('magicInput.silence_stop'));
             }
         }
     };
@@ -106,12 +108,12 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                 // @ts-ignore
                 const getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
                 if (!getUserMedia) {
-                    throw new Error('Tu navegador no soporta grabación de audio. Intenta usar Chrome o Safari actualizado en HTTPS.');
+                    throw new Error(t('magicInput.browser_not_supported'));
                 }
             }
 
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                 throw new Error('La grabación requiere una conexión segura (HTTPS).');
+                 throw new Error(t('magicInput.secure_connection_required'));
             }
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -170,9 +172,9 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     try {
                         const text = await transcribeAudio(formData);
                         setInput(text);
-                        toast.success('Audio transcrito con éxito 🎙️');
+                        toast.success(t('magicInput.audio_transcribed'));
                     } catch (error) {
-                        toast.error('Error al transcribir el audio');
+                        toast.error(t('magicInput.transcription_error'));
                         console.error(error);
                     }
                 });
@@ -181,7 +183,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
             mediaRecorder.current.start();
             setIsRecording(true);
         } catch (err) {
-            toast.error('No se pudo acceder al micrófono');
+            toast.error(t('magicInput.mic_error'));
             console.error(err);
         }
     };
@@ -191,7 +193,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
         if (!file) return;
 
         const isPdf = file.type === 'application/pdf';
-        toast.info(`Analizando ${isPdf ? 'PDF' : 'imagen'} con IA... 📸`);
+        toast.info(isPdf ? t('magicInput.analyzing_pdf') : t('magicInput.analyzing_image'));
 
         const formData = new FormData();
         formData.append('file', file);
@@ -206,31 +208,31 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     if (onTransactionAdded) {
                         onTransactionAdded(result);
                     }
-                    for (const t of result) {
-                        await saveTransaction(t);
+                    for (const t_ of result) {
+                        await saveTransaction(t_);
                     }
                     
                     const warnings = result.filter(t => t.warning);
                     if (warnings.length > 0) {
-                         toast.warning(`⚠️ Detectada anomalía: ${warnings[0].warning}`, { duration: 6000 });
+                         toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
                     }
 
-                    toast.success(`${result.length} gastos procesados y guardados ✨`);
+                    toast.success(`${result.length} ${t('magicInput.expenses_saved')}`);
                 } else if (!('type' in result)) {
                     if (onTransactionAdded) {
                         onTransactionAdded([result as Transaction]);
                     }
-                    const t = result as Transaction;
-                    await saveTransaction(t);
+                    const t_ = result as Transaction;
+                    await saveTransaction(t_);
 
-                    if (t.warning) {
-                        toast.warning(`⚠️ Detectada anomalía: ${t.warning}`, { duration: 6000 });
+                    if (t_.warning) {
+                        toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });
                     }
 
-                    toast.success('Documento procesado y guardado ✨');
+                    toast.success(t('magicInput.document_saved'));
                 }
             } catch (error) {
-                toast.error(`Error al procesar el ${isPdf ? 'PDF' : 'archivo'}`);
+                toast.error(isPdf ? t('magicInput.error_pdf') : t('magicInput.error_file'));
                 console.error(error);
             }
         });
@@ -259,20 +261,20 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
 
                     const warnings = result.filter(t => t.warning);
                     if (warnings.length > 0) {
-                            toast.warning(`⚠️ Detectada anomalía: ${warnings[0].warning}`, { duration: 6000 });
+                            toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
                     }
 
-                    toast.success(`${result.length} gastos registrados mágicamente ✨`);
+                    toast.success(`${result.length} ${t('magicInput.expenses_registered')}`);
                 } else if (!('type' in result)) {
                     if (onTransactionAdded) {
                         onTransactionAdded([result as Transaction]);
                     }
                     // It's a single transaction (fallback)
-                    const t = result as Transaction;
-                    const saveResult = await saveTransaction(t);
+                    const t_ = result as Transaction;
+                    const saveResult = await saveTransaction(t_);
                     
                     if (saveResult.success) {
-                        toast.success('Gasto registrado mágicamente ✨');
+                        toast.success(t('magicInput.expense_registered'));
                         
                         // Check for unlocked achievements
                         // @ts-ignore
@@ -285,7 +287,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                                             <Trophy className="w-6 h-6 animate-bounce" />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-sm uppercase tracking-wider">¡Logro Desbloqueado!</p>
+                                            <p className="font-bold text-sm uppercase tracking-wider">{t('magicInput.achievement_unlocked')}</p>
                                             <p className="font-medium">{achievement.title}</p>
                                             <p className="text-xs text-white/80">+{achievement.xp_reward} XP</p>
                                         </div>
@@ -303,15 +305,15 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                          toast.error('Error al guardar: ' + saveResult.error);
                     }
 
-                    if (t.warning) {
-                        toast.warning(`⚠️ Detectada anomalía: ${t.warning}`, { duration: 6000 });
+                    if (t_.warning) {
+                        toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });
                     }
                 } else {
-                    toast.info('AI ha respondido a tu pregunta');
+                    toast.info(t('magicInput.ai_answered'));
                 }
 
             } catch (error) {
-                toast.error('Hubo un error al procesar');
+                toast.error(t('magicInput.processing_error'));
                 setInput(rawText); // Restore on error
             }
         });
@@ -381,7 +383,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                             {showClearConfirm ? (
                                 <>
                                     <Trash2 className="w-3 h-3" />
-                                    <span className="text-xs font-medium">¿Borrar?</span>
+                                    <span className="text-xs font-medium">{t('magicInput.delete_confirm')}</span>
                                 </>
                             ) : (
                                 <X className="w-3.5 h-3.5" />
@@ -458,7 +460,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
                         disabled={isPending || isRecording}
-                        placeholder={isRecording ? "Escuchando..." : (isQuestion ? "¿Qué quieres saber?" : "¿En qué gastaste hoy?")}
+                        placeholder={isRecording ? t('magicInput.listening') : (isQuestion ? t('magicInput.what_do_you_want_to_know') : t('magicInput.what_did_you_spend_on'))}
                         rows={1}
                         className={cn(
                             "w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground/50 outline-none resize-none min-h-[60px] max-h-[200px] overflow-y-auto transition-all duration-300",

@@ -3,15 +3,17 @@
 import { Transaction } from '@/lib/types'
 import { calculateStats } from '@/lib/stats'
 import { motion } from 'framer-motion'
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function CategoryChart({ transactions }: { transactions: Transaction[] }) {
+    const { t } = useSettings()
     const stats = calculateStats(transactions);
 
     return (
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm h-full">
             <div className="mb-6">
-                <h3 className="font-semibold text-foreground">Gastos por Categoría</h3>
-                <p className="text-xs text-muted-foreground">Distribución del mes actual</p>
+                <h3 className="font-semibold text-foreground">{t('dashboard.categoryChart')}</h3>
+                <p className="text-xs text-muted-foreground">{t('dashboard.categoryChartSub')}</p>
             </div>
 
             <div className="space-y-4">
@@ -43,7 +45,7 @@ export function CategoryChart({ transactions }: { transactions: Transaction[] })
 
                 {stats.categoryData.length === 0 && (
                     <p className="text-center text-muted-foreground text-sm py-10">
-                        No hay datos para mostrar.
+                        {t('dashboard.noData')}
                     </p>
                 )}
             </div>

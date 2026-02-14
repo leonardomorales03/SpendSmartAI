@@ -2,25 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-const quotes = [
-    "Un presupuesto le dice a tu dinero a dónde ir.",
-    "No ahorres lo que queda después de gastar.",
-    "Cuida los pequeños gastos; un pequeño agujero hunde barcos.",
-    "La libertad financiera es vivir según tus términos.",
-    "Tu mente es tu activo más valioso. Invierte en ella.",
-    "El riesgo viene de no saber lo que estás haciendo."
-]
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function WisdomBanner() {
+    const { t } = useSettings()
     const [index, setIndex] = useState(0);
+    const quotes = (t('wisdom.quotes') as unknown as string[]) || []
 
     useEffect(() => {
         const interval = setInterval(() => {
             setIndex((prev) => (prev + 1) % quotes.length);
         }, 8000);
         return () => clearInterval(interval);
-    }, []);
+    }, [quotes.length]);
 
     return (
         <div className="h-10 flex items-center justify-center pointer-events-none select-none">

@@ -4,8 +4,11 @@ import { Transaction } from '@/lib/types'
 import { motion } from 'framer-motion'
 import { formatDistanceToNow } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { useSettings } from '@/components/providers/settings-provider'
 
 export function TransactionItem({ transaction }: { transaction: Transaction }) {
+    const { formatCurrency } = useSettings()
+    
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -26,7 +29,7 @@ export function TransactionItem({ transaction }: { transaction: Transaction }) {
             </div>
             <div className="text-right">
                 <span className="block font-bold text-foreground">
-                    ${transaction.amount.toLocaleString('es-CO')}
+                    {formatCurrency(transaction.amount)}
                 </span>
             </div>
         </motion.div>
