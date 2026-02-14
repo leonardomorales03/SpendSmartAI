@@ -208,12 +208,24 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     for (const t of result) {
                         await saveTransaction(t);
                     }
+                    
+                    const warnings = result.filter(t => t.warning);
+                    if (warnings.length > 0) {
+                         toast.warning(`⚠️ Detectada anomalía: ${warnings[0].warning}`, { duration: 6000 });
+                    }
+
                     toast.success(`${result.length} gastos procesados y guardados ✨`);
                 } else if (!('type' in result)) {
                     if (onTransactionAdded) {
                         onTransactionAdded([result as Transaction]);
                     }
-                    await saveTransaction(result as Transaction);
+                    const t = result as Transaction;
+                    await saveTransaction(t);
+
+                    if (t.warning) {
+                        toast.warning(`⚠️ Detectada anomalía: ${t.warning}`, { duration: 6000 });
+                    }
+
                     toast.success('Documento procesado y guardado ✨');
                 }
             } catch (error) {
@@ -243,13 +255,25 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     for (const t of result) {
                         await saveTransaction(t);
                     }
+
+                    const warnings = result.filter(t => t.warning);
+                    if (warnings.length > 0) {
+                            toast.warning(`⚠️ Detectada anomalía: ${warnings[0].warning}`, { duration: 6000 });
+                    }
+
                     toast.success(`${result.length} gastos registrados mágicamente ✨`);
                 } else if (!('type' in result)) {
                     if (onTransactionAdded) {
                         onTransactionAdded([result as Transaction]);
                     }
                     // It's a single transaction (fallback)
-                    await saveTransaction(result as Transaction);
+                    const t = result as Transaction;
+                    await saveTransaction(t);
+
+                    if (t.warning) {
+                        toast.warning(`⚠️ Detectada anomalía: ${t.warning}`, { duration: 6000 });
+                    }
+
                     toast.success('Gasto registrado mágicamente ✨');
                 } else {
                     toast.info('AI ha respondido a tu pregunta');

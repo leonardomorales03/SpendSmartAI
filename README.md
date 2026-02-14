@@ -84,7 +84,7 @@ Interactúa con tus datos financieros mediante lenguaje natural. Pregunta a la I
 
 ### 🚧 Fase 2: IA Financiera Avanzada (En Progreso)
 *   [x] **Chat Contextual (RAG)**: Conversación natural con tus datos financieros ("¿Cuánto gasté en Uber el mes pasado?").
-*   [ ] **Detección de Anomalías**: Alertas proactivas sobre gastos inusuales.
+*   [x] **Detección de Anomalías**: Alertas proactivas sobre gastos inusuales.
 *   [ ] **Insights Predictivos**: "A este ritmo, superarás tu presupuesto en 5 días".
 
 ### 🔜 Fase 3: Expansión y Retención

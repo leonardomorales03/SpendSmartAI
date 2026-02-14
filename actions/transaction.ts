@@ -4,6 +4,7 @@ import { Transaction, AIAnswer } from '@/lib/types'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { groq } from '@/lib/groq'
+import { detectAnomaly } from './anomaly'
 
 export async function extractFromPdf(formData: FormData): Promise<Transaction[] | AIAnswer> {
     const file = formData.get('file') as File;
@@ -129,18 +130,27 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
     console.log('Respuesta AI:', content);
 
     const aiResult = JSON.parse(content);
-    const transactions = (aiResult.transactions || []).map((t: any) => {
+    const transactions = await Promise.all((aiResult.transactions || []).map(async (t: any) => {
         const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+        const categoryId = t.category_id || category.id;
+        
+        // Detect anomalies
+        let warning: string | undefined;
+        if (user && categoryId) {
+             warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
+        }
+
         return {
             id: crypto.randomUUID(),
             amount: t.amount || 0,
-            category_id: t.category_id || category.id,
+            category_id: categoryId,
             category: category,
             description: t.description || text,
             date: new Date().toISOString(),
-            emoji: t.emoji || category.emoji || '📦'
+            emoji: t.emoji || category.emoji || '📦',
+            warning
         } as Transaction;
-    });
+    }));
 
     return transactions;
 }
@@ -198,6 +208,8 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
     const { data: dbCategories } = await supabase.from('categories').select('*');
     const categoriesList = (dbCategories || []).map((c: any) => `${c.name} (ID: ${c.id})`).join(', ');
 
+    const { data: { user } } = await supabase.auth.getUser()
+
     try {
         const response = await groq.chat.completions.create({
             messages: [
@@ -239,19 +251,27 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
 
         const content = response.choices[0]?.message?.content || '{"transactions": []}';
         const aiResult = JSON.parse(content);
-
-        const transactions = (aiResult.transactions || []).map((t: any) => {
+        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: any) => {
             const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+            const categoryId = t.category_id || category.id;
+            
+            // Detect anomalies
+            let warning: string | undefined;
+            if (user && categoryId) {
+                warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
+            }
+
             return {
                 id: crypto.randomUUID(),
                 amount: t.amount || 0,
-                category_id: t.category_id || category.id,
+                category_id: categoryId,
                 category: category,
                 description: t.description || 'Gasto desde imagen',
                 date: new Date().toISOString(),
-                emoji: t.emoji || category.emoji || '📦'
+                emoji: t.emoji || category.emoji || '📦',
+                warning
             } as Transaction;
-        });
+        }));
 
         return transactions;
     } catch (error) {

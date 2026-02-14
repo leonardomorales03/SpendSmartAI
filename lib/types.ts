@@ -13,6 +13,7 @@ export type Transaction = {
     description: string;
     date: string; // ISO string
     emoji?: string; // Derived from category or AI
+    warning?: string; // Anomaly detection warning
 };
 
 export type TransactionDraft = {
