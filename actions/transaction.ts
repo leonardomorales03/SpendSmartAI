@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { groq } from '@/lib/groq'
 import { detectAnomaly } from './anomaly'
+import { checkDailyStreak, checkAchievements, addXp } from './gamification'
 
 export async function extractFromPdf(formData: FormData): Promise<Transaction[] | AIAnswer> {
     const file = formData.get('file') as File;
@@ -178,8 +179,25 @@ export async function saveTransaction(transaction: Transaction) {
         return { success: false, error: error.message };
     }
 
-    revalidatePath('/');
-    return { success: true };
+    // --- GAMIFICATION HOOKS ---
+    try {
+        // 1. Check Streak
+        await checkDailyStreak(user.id);
+        
+        // 2. Add XP for transaction (10 XP)
+        await addXp(10);
+
+        // 3. Check Achievements
+        const unlocked = await checkAchievements(transaction);
+        
+        revalidatePath('/');
+        return { success: true, unlockedAchievements: unlocked };
+    } catch (gamificationError) {
+        console.error('Gamification error:', gamificationError);
+        // Don't fail the transaction if gamification fails
+        revalidatePath('/');
+        return { success: true };
+    }
 }
 
 export async function transcribeAudio(formData: FormData) {

@@ -3,6 +3,7 @@ import { Transaction } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { WisdomBanner } from "@/components/wisdom-banner";
 import { getBudget } from "@/actions/budget";
+import { getUserProgress } from "@/actions/gamification";
 import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,7 @@ export default async function Home() {
 
   const transactions = await getTransactions();
   const initialBudget = await getBudget();
+  const userProgress = await getUserProgress();
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
@@ -81,7 +83,11 @@ export default async function Home() {
         </div>
       </header>
 
-      <Dashboard initialTransactions={transactions} budget={initialBudget} />
+      <Dashboard 
+        initialTransactions={transactions} 
+        budget={initialBudget} 
+        userProgress={userProgress}
+      />
     </main>
   );
 }

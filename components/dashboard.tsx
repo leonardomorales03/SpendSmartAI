@@ -11,12 +11,15 @@ import { PredictiveInsights } from '@/components/predictive-insights'
 import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
+import { LevelCard } from '@/components/gamification/level-card'
+
 interface DashboardProps {
   initialTransactions: any[]
   budget: number
+  userProgress: any // New prop
 }
 
-export function Dashboard({ initialTransactions, budget }: DashboardProps) {
+export function Dashboard({ initialTransactions, budget, userProgress }: DashboardProps) {
   // We need to keep this state to update UI when new transactions are added
   const [transactions, setTransactions] = useState(initialTransactions)
   
@@ -27,7 +30,22 @@ export function Dashboard({ initialTransactions, budget }: DashboardProps) {
 
   return (
     <div className="space-y-6">
-      <MagicInput onTransactionAdded={handleTransactionAdded} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">
+            <MagicInput onTransactionAdded={handleTransactionAdded} />
+        </div>
+        <div className="md:col-span-1">
+            {userProgress && (
+                <LevelCard 
+                    level={userProgress.level} 
+                    xp={userProgress.xp} 
+                    nextLevelXp={userProgress.next_level_xp} 
+                    progressPercent={userProgress.progress_percent}
+                    streak={userProgress.current_streak}
+                />
+            )}
+        </div>
+      </div>
       
       <StatsGrid transactions={transactions} />
       

@@ -3,9 +3,10 @@
 import { useState, useOptimistic, useTransition, useRef, useEffect } from 'react'
 import { extractTransactionDetails, saveTransaction, transcribeAudio, extractFromImage, extractFromPdf } from '@/actions/transaction'
 import { Transaction, AIAnswer } from '@/lib/types'
-import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trash2 } from 'lucide-react'
+import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trash2, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import confetti from 'canvas-confetti'
 
 export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
     const [input, setInput] = useState('')
@@ -268,13 +269,43 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     }
                     // It's a single transaction (fallback)
                     const t = result as Transaction;
-                    await saveTransaction(t);
+                    const saveResult = await saveTransaction(t);
+                    
+                    if (saveResult.success) {
+                        toast.success('Gasto registrado mágicamente ✨');
+                        
+                        // Check for unlocked achievements
+                        // @ts-ignore
+                        if (saveResult.unlockedAchievements && saveResult.unlockedAchievements.length > 0) {
+                            // @ts-ignore
+                            saveResult.unlockedAchievements.forEach((achievement: any) => {
+                                toast.custom((id) => (
+                                    <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg flex items-center gap-4 border border-white/20">
+                                        <div className="p-2 bg-white/20 rounded-full">
+                                            <Trophy className="w-6 h-6 animate-bounce" />
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm uppercase tracking-wider">¡Logro Desbloqueado!</p>
+                                            <p className="font-medium">{achievement.title}</p>
+                                            <p className="text-xs text-white/80">+{achievement.xp_reward} XP</p>
+                                        </div>
+                                    </div>
+                                ), { duration: 5000 });
+                            });
+                            
+                            confetti({
+                                particleCount: 100,
+                                spread: 70,
+                                origin: { y: 0.6 }
+                            });
+                        }
+                    } else {
+                         toast.error('Error al guardar: ' + saveResult.error);
+                    }
 
                     if (t.warning) {
                         toast.warning(`⚠️ Detectada anomalía: ${t.warning}`, { duration: 6000 });
                     }
-
-                    toast.success('Gasto registrado mágicamente ✨');
                 } else {
                     toast.info('AI ha respondido a tu pregunta');
                 }
