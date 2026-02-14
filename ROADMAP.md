@@ -117,7 +117,16 @@ Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permiti
     *   [ ] Visualización en el Dashboard: Barra de progreso "Gastado vs Presupuesto".
     *   [ ] Alertas visuales (amarillo/rojo) al acercarse al límite.
 
-### 3. Perfil y Ajustes
+### 3. [x] Gamificación (Badges y Niveles)
+*   **Problema:** Falta de incentivos para el registro diario.
+*   **Solución:** Sistema de XP, niveles y logros.
+*   **Acciones:**
+    *   [x] Crear tabla `user_progress` y `achievements`.
+    *   [x] Sistema de XP por transacción y rachas.
+    *   [x] Página de Logros (`/achievements`) y visualización de nivel.
+    *   [x] *Nota: Leaderboard eliminado por privacidad.*
+
+### 4. Perfil y Ajustes
 *   **Problema:** No se pueden cambiar datos personales ni preferencias.
 *   **Solución:** Sección de configuración de usuario.
 *   **Acciones:**
@@ -125,7 +134,7 @@ Esta fase es crítica para cerrar el ciclo funcional de la aplicación y permiti
     *   [ ] Cambio de contraseña y actualización de foto de perfil.
     *   [ ] Configuración de moneda base (COP/USD) y formato de fecha.
 
-### 4. Gestión Real de Suscripciones
+### 5. Gestión Real de Suscripciones
 *   **Problema:** El widget de suscripciones es informativo/estático en algunos casos.
 *   **Solución:** Motor de gastos recurrentes.
 *   **Acciones:**

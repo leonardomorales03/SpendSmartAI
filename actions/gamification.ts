@@ -60,6 +60,8 @@ export async function getUserProgress(): Promise<UserProgress | null> {
             .select()
             .single()
         
+        if (!newProgress) return null // Handle failed insert
+
         return formatProgress(newProgress)
     }
 
@@ -67,6 +69,10 @@ export async function getUserProgress(): Promise<UserProgress | null> {
 }
 
 function formatProgress(raw: any): UserProgress {
+    if (!raw) {
+        console.error('formatProgress received null raw data')
+        throw new Error('Progress data is missing')
+    }
     const currentLevelXp = getXpForLevel(raw.level)
     const nextLevelXp = getXpForLevel(raw.level + 1)
     const needed = nextLevelXp - currentLevelXp
@@ -265,14 +271,3 @@ export async function checkAchievements(transaction: any) {
     return unlocked
 }
 
-export async function getLeaderboard() {
-    const supabase = await createClient()
-    
-    const { data } = await supabase
-        .from('user_progress')
-        .select('display_name, level, xp, avatar_url')
-        .order('xp', { ascending: false })
-        .limit(10)
-
-    return data || []
-}

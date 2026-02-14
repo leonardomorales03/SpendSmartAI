@@ -65,10 +65,6 @@ export function LevelCard({ level, xp, nextLevelXp, progressPercent, streak }: L
                     <Trophy className="w-3.5 h-3.5" />
                     Ver Logros
                 </Link>
-                <Link href="/leaderboard" className="flex items-center gap-1 hover:text-white transition-colors">
-                    <Star className="w-3.5 h-3.5" />
-                    Ranking
-                </Link>
             </div>
         </div>
     )
