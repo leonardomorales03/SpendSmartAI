@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 import { EditTransactionModal } from './edit-transaction-modal'
 
 interface TransactionTableProps {
-  transactions: any[] // Using any for now to include the joined category
+  transactions: Transaction[]
   totalCount: number
   currentPage: number
   pageSize: number
@@ -25,9 +25,41 @@ export function TransactionTable({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
-  const [editingTransaction, setEditingTransaction] = useState<any | null>(null)
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
 
   const totalPages = Math.ceil(totalCount / pageSize)
+
+  const handleExportCsv = () => {
+    if (!transactions || transactions.length === 0) {
+      toast.info('No hay transacciones para exportar')
+      return
+    }
+
+    const headers = ['Fecha', 'Descripción', 'Categoría', 'Monto']
+    const rows = transactions.map((t) => [
+      t.date,
+      t.description,
+      t.category?.name || '',
+      t.amount.toString(),
+    ])
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'spendsmart_transacciones.csv')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+
+    toast.success('Exportación opcional generada correctamente')
+  }
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de querer eliminar este gasto?')) return
@@ -42,6 +74,7 @@ export function TransactionTable({
         toast.error('Error al eliminar: ' + result.error)
       }
     } catch (error) {
+      console.error('Error deleting transaction:', error)
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsDeleting(null)
@@ -76,6 +109,22 @@ export function TransactionTable({
       )}
 
       <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Transacciones</h2>
+            <p className="text-xs text-muted-foreground mt-1">
+              Exportación de reportes marcada como opcional
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="px-3 py-1.5 text-xs font-medium rounded-full border border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+          >
+            Exportar CSV (Opcional)
+          </button>
+        </div>
+
         <div className="overflow-hidden border rounded-lg shadow-sm">
           <table className="w-full text-sm text-left">
             <thead className="bg-muted/50 text-muted-foreground font-medium border-b">

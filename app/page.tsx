@@ -1,9 +1,11 @@
 import { Dashboard } from "@/components/dashboard";
-import { Transaction } from "@/lib/types";
+import { Transaction, SavingGoal } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
 import { getBudget } from "@/actions/budget";
 import { getUserProgress } from "@/actions/gamification";
+import { getSubscriptions } from "@/actions/subscriptions";
+import { getSavingGoals } from "@/actions/saving-goals";
 import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -46,6 +48,8 @@ export default async function Home() {
   const transactions = await getTransactions();
   const initialBudget = await getBudget();
   const userProgress = await getUserProgress();
+  const subscriptions = await getSubscriptions();
+  const savingGoals: SavingGoal[] = await getSavingGoals();
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
@@ -55,6 +59,8 @@ export default async function Home() {
         initialTransactions={transactions} 
         budget={initialBudget} 
         userProgress={userProgress}
+        subscriptions={subscriptions}
+        savingGoals={savingGoals}
       />
     </main>
   );

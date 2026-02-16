@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, CreditCard, Lock, Save, Loader2, Globe } from 'lucide-react'
+import { User, Lock, Save, Loader2, Globe } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateProfile, updatePreferences, updatePassword, UserSettings, UserProfile } from '@/actions/settings'
 import { getExchangeRate } from '@/actions/currency'
@@ -96,6 +96,7 @@ export function SettingsForm({ settings, profile }: SettingsFormProps) {
                 toast.error('Error: ' + result.error)
             }
         } catch (error) {
+            console.error('Error saving preferences:', error)
             toast.error('Ocurrió un error inesperado')
         } finally {
             setIsLoading(false)
@@ -113,6 +114,7 @@ export function SettingsForm({ settings, profile }: SettingsFormProps) {
                 toast.error('Error: ' + result.error)
             }
         } catch (error) {
+            console.error('Error saving profile:', error)
             toast.error('Ocurrió un error inesperado')
         } finally {
             setIsLoading(false)
@@ -140,6 +142,7 @@ export function SettingsForm({ settings, profile }: SettingsFormProps) {
                 toast.error('Error: ' + result.error)
             }
         } catch (error) {
+            console.error('Error updating password:', error)
             toast.error('Ocurrió un error inesperado')
         } finally {
             setIsLoading(false)

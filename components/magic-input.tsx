@@ -2,7 +2,8 @@
 
 import { useState, useOptimistic, useTransition, useRef, useEffect } from 'react'
 import { extractTransactionDetails, saveTransaction, transcribeAudio, extractFromImage, extractFromPdf } from '@/actions/transaction'
-import { Transaction, AIAnswer } from '@/lib/types'
+import { getCategories } from '@/actions/categories'
+import { Transaction, AIAnswer, Category } from '@/lib/types'
 import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trash2, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -12,6 +13,7 @@ import { useSettings } from '@/components/providers/settings-provider'
 export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
     const { t } = useSettings()
     const [input, setInput] = useState('')
+    const [lastRawText, setLastRawText] = useState('')
     const [isPending, startTransition] = useTransition()
     const [isRecording, setIsRecording] = useState(false)
     const mediaRecorder = useRef<MediaRecorder | null>(null)
@@ -19,13 +21,20 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
     const fileInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    // Refs para detección de silencio (declarados antes de usarse)
     const silenceStartRef = useRef<number | null>(null);
     const animationFrameRef = useRef<number | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
     const [silenceWarning, setSilenceWarning] = useState<number | null>(null);
 
-    // Helper to check if it's an question
+    const [showManualFallback, setShowManualFallback] = useState(false);
+    const [manualDescription, setManualDescription] = useState('');
+    const [manualAmount, setManualAmount] = useState('');
+    const [manualDate, setManualDate] = useState(new Date().toISOString().split('T')[0]);
+    const [manualCategoryId, setManualCategoryId] = useState('');
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+    const [isSavingManual, setIsSavingManual] = useState(false);
+
     const isQuestion = input.trim().startsWith('?');
 
     const getSupportedMimeType = () => {
@@ -243,6 +252,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
         if (!input.trim()) return
 
         const rawText = input;
+        setLastRawText(rawText);
         setInput(''); // Clear immediately
 
         startTransition(async () => {
@@ -251,6 +261,13 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                 const result = await extractTransactionDetails(rawText);
 
                 if (Array.isArray(result)) {
+                    if (result.length === 0) {
+                        toast.error(t('magicInput.processing_error'));
+                        setInput(rawText);
+                        setShowManualFallback(true);
+                        return;
+                    }
+
                     if (onTransactionAdded) {
                         onTransactionAdded(result);
                     }
@@ -315,6 +332,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
             } catch (error) {
                 toast.error(t('magicInput.processing_error'));
                 setInput(rawText); // Restore on error
+                setShowManualFallback(true);
             }
         });
     }
@@ -357,6 +375,75 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
         }
     };
 
+    useEffect(() => {
+        const loadCategories = async () => {
+            try {
+                setIsLoadingCategories(true);
+                const data = await getCategories();
+                setCategories(data || []);
+                if (data && data.length > 0 && !manualCategoryId) {
+                    setManualCategoryId(data[0].id);
+                }
+            } finally {
+                setIsLoadingCategories(false);
+            }
+        };
+
+        if (showManualFallback && categories.length === 0 && !isLoadingCategories) {
+            loadCategories();
+        }
+    }, [showManualFallback, categories.length, manualCategoryId, isLoadingCategories]);
+
+    const handleManualSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!manualDescription.trim() && !lastRawText.trim()) {
+            toast.error(t('magicInput.processing_error'));
+            return;
+        }
+        if (!manualAmount || isNaN(Number(manualAmount)) || Number(manualAmount) <= 0) {
+            toast.error(t('magicInput.processing_error'));
+            return;
+        }
+        if (!manualDate) {
+            toast.error(t('magicInput.processing_error'));
+            return;
+        }
+        if (!manualCategoryId && categories.length === 0) {
+            toast.error('No hay categorías disponibles. Crea una desde la pantalla de categorías.');
+            return;
+        }
+
+        const category = categories.find(c => c.id === manualCategoryId) || categories[0];
+        const transaction: Transaction = {
+            id: crypto.randomUUID(),
+            amount: Number(manualAmount),
+            category_id: category.id,
+            category,
+            description: manualDescription.trim() || lastRawText.trim(),
+            date: new Date(manualDate).toISOString(),
+            emoji: category.emoji,
+        };
+
+        setIsSavingManual(true);
+        try {
+            const result = await saveTransaction(transaction);
+            if (result.success) {
+                if (onTransactionAdded) {
+                    onTransactionAdded([transaction]);
+                }
+                toast.success(t('magicInput.expense_registered'));
+                setShowManualFallback(false);
+                setManualDescription('');
+                setManualAmount('');
+                setManualDate(new Date().toISOString().split('T')[0]);
+            } else {
+                toast.error('Error al guardar: ' + result.error);
+            }
+        } finally {
+            setIsSavingManual(false);
+        }
+    };
+
     const hasContent = input.trim().length > 0;
     const showCamera = !hasContent && !isRecording;
 
@@ -365,7 +452,6 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
             <form onSubmit={handleSubmit} className="relative group">
                 <div className="relative flex items-end bg-card/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10 focus-within:border-white/20">
                     
-                    {/* Botón Limpiar (Top Right) */}
                     <div className={cn(
                         "absolute top-2 right-2 z-20 transition-all duration-300",
                         hasContent ? "opacity-100 scale-100" : "opacity-0 scale-0 pointer-events-none"
@@ -391,7 +477,6 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         </button>
                     </div>
 
-                    {/* Iconos Izquierda (Mic, Camera, Type Indicator) */}
                     <div className="flex items-center gap-1 pl-3 pb-3 h-[60px] transition-all duration-300"> 
                          {isRecording ? (
                             <button
@@ -453,7 +538,6 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         </div>
                     </div>
 
-                    {/* Textarea Auto-expansible */}
                     <textarea
                         ref={textareaRef}
                         value={input}
@@ -469,7 +553,6 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         style={{ lineHeight: '1.5' }}
                     />
 
-                    {/* Botón de Enviar (Derecha Abajo) */}
                     <div className="absolute right-2 bottom-2 z-10">
                         <button
                             type="submit"
@@ -486,6 +569,116 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     </div>
                 </div>
             </form>
+
+            {showManualFallback && (
+                <form onSubmit={handleManualSubmit} className="space-y-4 p-4 rounded-2xl border border-amber-500/40 bg-amber-500/5">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-semibold text-amber-500">
+                                {t('magicInput.manual_fallback_title')}
+                            </p>
+                            <p className="text-xs text-amber-100/80">
+                                {t('magicInput.manual_fallback_subtitle')}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowManualFallback(false)}
+                            className="p-2 rounded-full text-amber-200 hover:bg-amber-500/20 transition-colors"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-amber-100/80">
+                                {t('magicInput.field_description')}
+                            </label>
+                            <input
+                                type="text"
+                                value={manualDescription}
+                                onChange={(e) => setManualDescription(e.target.value)}
+                                placeholder={lastRawText || ''}
+                                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-amber-500/40 text-sm text-amber-50 placeholder:text-amber-200/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-amber-100/80">
+                                {t('magicInput.field_amount')}
+                            </label>
+                            <input
+                                type="number"
+                                value={manualAmount}
+                                onChange={(e) => setManualAmount(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-amber-500/40 text-sm text-amber-50 placeholder:text-amber-200/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                                min={0}
+                                step="0.01"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-amber-100/80">
+                                {t('magicInput.field_date')}
+                            </label>
+                            <input
+                                type="date"
+                                value={manualDate}
+                                onChange={(e) => setManualDate(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-amber-500/40 text-sm text-amber-50 placeholder:text-amber-200/40 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-xs font-medium text-amber-100/80">
+                                {t('magicInput.field_category')}
+                            </label>
+                            <select
+                                value={manualCategoryId}
+                                onChange={(e) => setManualCategoryId(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-black/20 border border-amber-500/40 text-sm text-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-400/60"
+                                disabled={isLoadingCategories || categories.length === 0}
+                            >
+                                {isLoadingCategories && (
+                                    <option value="">{t('magicInput.processing')}</option>
+                                )}
+                                {!isLoadingCategories && categories.length === 0 && (
+                                    <option value="">{t('magicInput.no_categories')}</option>
+                                )}
+                                {!isLoadingCategories && categories.length > 0 && categories.map((cat) => (
+                                    <option key={cat.id} value={cat.id}>
+                                        {cat.emoji} {cat.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowManualFallback(false)}
+                            className="px-3 py-2 rounded-xl text-xs font-medium text-amber-100/80 hover:bg-amber-500/10 transition-colors"
+                            disabled={isSavingManual}
+                        >
+                            {t('magicInput.cancel_manual')}
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={isSavingManual}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-400 text-black hover:bg-amber-300 transition-colors disabled:opacity-60"
+                        >
+                            {isSavingManual ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Sparkles className="w-4 h-4" />
+                            )}
+                            {t('magicInput.save_manual')}
+                        </button>
+                    </div>
+                </form>
+            )}
         </div>
     )
 }

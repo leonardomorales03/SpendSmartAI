@@ -24,7 +24,7 @@ export type Achievement = {
     description: string
     icon_name: string
     xp_reward: number
-    unlocked_at?: string // If null, locked
+    unlocked_at?: string | null
 }
 
 const LEVEL_XP_BASE = 100
@@ -68,7 +68,7 @@ export async function getUserProgress(): Promise<UserProgress | null> {
     return formatProgress(progress)
 }
 
-function formatProgress(raw: any): UserProgress {
+function formatProgress(raw: RawUserProgress): UserProgress {
     if (!raw) {
         console.error('formatProgress received null raw data')
         throw new Error('Progress data is missing')
@@ -84,6 +84,34 @@ function formatProgress(raw: any): UserProgress {
         next_level_xp: nextLevelXp,
         progress_percent: percent
     }
+}
+
+type RawUserProgress = {
+    id: string
+    user_id: string
+    xp: number
+    level: number
+    current_streak: number
+    longest_streak: number
+    last_activity_date: string | null
+    display_name: string | null
+}
+
+type RawAchievement = {
+    id: string
+    code: string
+    title: string
+    description: string
+    icon_name: string
+    xp_reward: number
+    condition_type: 'TRANSACTION_COUNT' | 'STREAK_DAYS' | 'TIME_LATE' | 'TIME_EARLY'
+    condition_value: number
+    category: string
+}
+
+type UserAchievementRow = {
+    achievement_id: string
+    unlocked_at?: string
 }
 
 export async function getAchievements(): Promise<Achievement[]> {
@@ -104,11 +132,16 @@ export async function getAchievements(): Promise<Achievement[]> {
         .select('achievement_id, unlocked_at')
         .eq('user_id', user.id)
 
-    const unlockedMap = new Map(unlocked?.map((u: any) => [u.achievement_id, u.unlocked_at]))
+    const unlockedMap = new Map(
+        (unlocked as UserAchievementRow[] | null | undefined)?.map((u) => [
+            u.achievement_id,
+            u.unlocked_at,
+        ]) || [],
+    )
 
-    return (allAchievements || []).map((a: any) => ({
+    return ((allAchievements || []) as RawAchievement[]).map((a) => ({
         ...a,
-        unlocked_at: unlockedMap.get(a.id) || null
+        unlocked_at: unlockedMap.get(a.id) || null,
     }))
 }
 
@@ -142,7 +175,7 @@ export async function checkDailyStreak(userId: string) {
         newStreak = progress.current_streak + 1
     }
 
-    const updates: any = {
+    const updates: Partial<RawUserProgress> = {
         last_activity_date: today,
         current_streak: newStreak
     }
@@ -193,7 +226,11 @@ export async function addXp(amount: number) {
     return { leveledUp: false }
 }
 
-export async function checkAchievements(transaction: any) {
+type TransactionForAchievements = {
+    date: string
+}
+
+export async function checkAchievements(transaction: TransactionForAchievements) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
@@ -207,8 +244,15 @@ export async function checkAchievements(transaction: any) {
         .select('achievement_id')
         .eq('user_id', user.id)
 
-    const unlockedIds = new Set(userAchievements?.map((ua: any) => ua.achievement_id))
-    const locked = allAchievements?.filter((a: any) => !unlockedIds.has(a.id)) || []
+    const unlockedIds = new Set(
+        (userAchievements as UserAchievementRow[] | null | undefined)?.map(
+            (ua) => ua.achievement_id,
+        ) || [],
+    )
+    const locked =
+        (allAchievements as RawAchievement[] | null | undefined)?.filter(
+            (a) => !unlockedIds.has(a.id),
+        ) || []
 
     // 2. Evaluate conditions
     // This is a simplified check. In a real app, this might be more complex or use triggers.
@@ -270,4 +314,3 @@ export async function checkAchievements(transaction: any) {
 
     return unlocked
 }
-

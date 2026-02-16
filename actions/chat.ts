@@ -26,8 +26,29 @@ const AVAILABLE_TOOLS = [
             type: "object",
             properties: {}
         }
+    },
+    {
+        name: "get_saving_goals",
+        description: "Get the list of current saving goals for the authenticated user.",
+        parameters: {
+            type: "object",
+            properties: {}
+        }
     }
 ];
+
+type RouterResponse = {
+    tool?: 'get_transactions' | 'get_budget_status' | 'get_saving_goals' | 'none';
+    parameters?: {
+        startDate?: string;
+        endDate?: string;
+        categoryName?: string;
+        limit?: number;
+    };
+    thought?: string;
+};
+
+type TransactionsToolParams = NonNullable<RouterResponse['parameters']>;
 
 export async function processFinancialQuery(query: string): Promise<AIAnswer> {
     const supabase = await createClient()
@@ -71,32 +92,54 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
             response_format: { type: "json_object" }
         });
 
-        const routerResponse = JSON.parse(routerCompletion.choices[0]?.message?.content || '{}');
+        const routerResponse = JSON.parse(
+            routerCompletion.choices[0]?.message?.content || '{}',
+        ) as RouterResponse;
         const { tool, parameters } = routerResponse;
-
-        let contextData: any = {};
+        
+        let contextData: {
+            tool_used: string;
+            tool_parameters: TransactionsToolParams;
+            type?: 'transactions' | 'budget_status' | 'saving_goals';
+            summary?: {
+                total_amount: number;
+                transaction_count: number;
+                date_range_start: string | null;
+                date_range_end: string | null;
+            };
+            raw?: { transactions: unknown[] };
+            budget?: number;
+            category_budgets?: unknown;
+            current_spending?: unknown;
+            goals?: unknown[];
+        } = {
+            tool_used: tool || 'none',
+            tool_parameters: (parameters || {}) as TransactionsToolParams,
+        };
 
         // 2. Data Retrieval (Execution)
         if (tool === 'get_transactions') {
+            const safeParams: TransactionsToolParams = parameters || {};
+
             let queryBuilder = supabase
                 .from('transactions')
                 .select('*, category:categories(name)')
                 .eq('user_id', user.id)
                 .order('date', { ascending: false })
-                .limit(parameters.limit || 50);
+                .limit(safeParams.limit || 50);
 
-            if (parameters.startDate) queryBuilder = queryBuilder.gte('date', parameters.startDate);
-            if (parameters.endDate) queryBuilder = queryBuilder.lte('date', parameters.endDate);
+            if (safeParams.startDate) queryBuilder = queryBuilder.gte('date', safeParams.startDate);
+            if (safeParams.endDate) queryBuilder = queryBuilder.lte('date', safeParams.endDate);
             
             // If category name is provided, we need to find the ID first or filter after join
             // Ideally we'd join and filter, but Supabase simple filtering on joined tables is tricky with just one query string
             // For MVP, let's fetch and filter in memory or try to resolve category ID first
-            if (parameters.categoryName) {
+            if (safeParams.categoryName) {
                 // Try to find category ID
                 const { data: categories } = await supabase
                     .from('categories')
                     .select('id')
-                    .ilike('name', `%${parameters.categoryName}%`)
+                    .ilike('name', `%${safeParams.categoryName}%`)
                     .limit(1);
                 
                 if (categories && categories.length > 0) {
@@ -106,7 +149,33 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
 
             const { data, error } = await queryBuilder;
             if (error) throw new Error(error.message);
-            contextData = { transactions: data };
+
+            const transactions = data || [];
+
+            let total = 0;
+            const count = transactions.length;
+            let firstDate: string | null = null;
+            let lastDate: string | null = null;
+
+            transactions.forEach((t) => {
+                total += Number(t.amount || 0);
+                const d = new Date(t.date);
+                const iso = d.toISOString();
+                if (!firstDate || iso < firstDate) firstDate = iso;
+                if (!lastDate || iso > lastDate) lastDate = iso;
+            });
+
+            contextData = {
+                ...contextData,
+                type: 'transactions',
+                summary: {
+                    total_amount: total,
+                    transaction_count: count,
+                    date_range_start: firstDate,
+                    date_range_end: lastDate,
+                },
+                raw: { transactions },
+            };
 
         } else if (tool === 'get_budget_status') {
             // Reusing logic from budget.ts (simplified)
@@ -124,9 +193,24 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
                 });
 
             contextData = { 
+                ...contextData,
+                type: 'budget_status',
                 budget: settings?.monthly_budget,
                 category_budgets: categoryBudgets,
                 current_spending: spending
+            };
+        }
+        else if (tool === 'get_saving_goals') {
+            const { data: goals } = await supabase
+                .from('saving_goals')
+                .select('*')
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: true });
+
+            contextData = {
+                ...contextData,
+                type: 'saving_goals',
+                goals: goals || []
             };
         }
 
@@ -136,17 +220,22 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
                 {
                     role: "system",
                     content: `Eres un experto analista financiero personal.
-                    Responde a la pregunta del usuario basándote EXCLUSIVAMENTE en los datos proporcionados.
-                    
-                    Contexto de Datos:
-                    ${JSON.stringify(contextData)}
-                    
-                    Instrucciones:
-                    - Sé conciso pero amable.
-                    - Si la respuesta implica números, dales formato de moneda (ej: $50,000 COP).
-                    - Si detectas algo inusual (ej: gasto muy alto en una categoría), menciónalo (Insight).
-                    - Si no hay datos suficientes, dilo claramente.
-                    - Responde siempre en Español.`
+Responde a la pregunta del usuario basándote EXCLUSIVAMENTE en los datos proporcionados abajo.
+
+=== CONTEXTO ESTRUCTURADO ===
+${JSON.stringify(contextData)}
+==============================
+
+INSTRUCCIONES IMPORTANTES:
+- Responde SIEMPRE en español, en un máximo de 2-3 párrafos y, si aplica, una viñeta final de recomendación.
+- Cuando menciones números o montos, explica SIEMPRE de dónde salen:
+  - Indica si son SUMAS, PROMEDIOS u otro tipo de cálculo.
+  - Menciona el rango de fechas y la categoría si aplica (por ejemplo: "entre el 01-01 y el 15-01 en Comida").
+- Si el contexto incluye "summary.total_amount" y "summary.transaction_count", úsalo explícitamente en la explicación.
+- Si el contexto es de tipo "budget_status", explica la relación entre gasto actual y presupuesto (global y por categoría).
+- Si el contexto es de tipo "saving_goals", conecta la respuesta con el avance hacia las metas de ahorro.
+- Si no hay datos suficientes, dilo claramente y sugiere qué tipo de información adicional se necesitaría.
+- Sé amable pero directo, evitando relleno innecesario.`
                 },
                 {
                     role: "user",

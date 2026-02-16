@@ -1,6 +1,7 @@
 import { FinancialChat } from "@/components/chat/financial-chat"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
+import Link from "next/link"
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +23,7 @@ export default async function ChatPage() {
                     Pregunta sobre tus gastos, presupuesto y tendencias usando lenguaje natural.
                 </p>
                 <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground mt-4">
-                    <a href="/" className="hover:text-primary transition-colors">← Volver al Dashboard</a>
+                    <Link href="/" className="hover:text-primary transition-colors">← Volver al Dashboard</Link>
                 </div>
             </header>
 

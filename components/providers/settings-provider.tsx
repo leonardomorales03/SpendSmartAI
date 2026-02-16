@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react'
+import { createContext, useContext, ReactNode, useState } from 'react'
 import { UserSettings, UserProfile } from '@/actions/settings'
 import es from '@/dictionaries/es.json'
 import en from '@/dictionaries/en.json'
@@ -11,11 +11,13 @@ type SettingsContextType = {
     settings: UserSettings | null
     profile: UserProfile | null
     formatCurrency: (amount: number) => string
-    t: (key: string) => any
+    t: (key: string) => string
     language: 'es' | 'en'
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined)
+
+import { OnboardingModal } from '@/components/onboarding-modal'
 
 export function SettingsProvider({ 
     children, 
@@ -28,15 +30,20 @@ export function SettingsProvider({
 }) {
     const language = (initialSettings?.language as 'es' | 'en') || 'es'
     const dict = dictionaries[language] || dictionaries.es
+    const [showOnboarding, setShowOnboarding] = useState(
+        () => Boolean(initialSettings && !initialSettings.has_completed_onboarding)
+    )
 
-    const t = (key: string) => {
+    const t = (key: string): string => {
         const keys = key.split('.')
-        let current: any = dict
+        let current: unknown = dict
         for (const k of keys) {
-            if (current[k] === undefined) return key
-            current = current[k]
+            if (typeof current !== 'object' || current === null || !(k in (current as Record<string, unknown>))) {
+                return key
+            }
+            current = (current as Record<string, unknown>)[k]
         }
-        return current
+        return typeof current === 'string' ? current : key
     }
 
     const formatCurrency = (amount: number) => {
@@ -60,6 +67,7 @@ export function SettingsProvider({
             language 
         }}>
             {children}
+            <OnboardingModal isOpen={showOnboarding} onClose={() => setShowOnboarding(false)} />
         </SettingsContext.Provider>
     )
 }

@@ -49,7 +49,21 @@ export function PredictiveInsights({ transactions, budget }: PredictiveInsightsP
         }).format(amount);
     };
 
-    if (transactions.length === 0 || budget === 0) return null;
+    if (transactions.length === 0 || budget === 0) {
+        return (
+            <div className="p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm flex flex-col items-center justify-center text-center">
+                <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-zinc-500" />
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        Insights Predictivos
+                    </h3>
+                </div>
+                <p className="text-sm text-zinc-500">
+                    Aún no hay suficientes datos ni presupuesto configurado para generar una proyección.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm hover:shadow-md transition-shadow">

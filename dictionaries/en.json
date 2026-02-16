@@ -53,7 +53,16 @@
     "processing_error": "There was an error processing",
     "anomaly_detected": "⚠️ Anomaly detected",
     "secure_connection_required": "Recording requires a secure connection (HTTPS).",
-    "browser_not_supported": "Your browser does not support audio recording. Try using updated Chrome or Safari on HTTPS."
+    "browser_not_supported": "Your browser does not support audio recording. Try using updated Chrome or Safari on HTTPS.",
+    "manual_fallback_title": "We couldn't understand this expense",
+    "manual_fallback_subtitle": "Enter it manually so you don't lose it.",
+    "field_description": "Description",
+    "field_amount": "Amount",
+    "field_date": "Date",
+    "field_category": "Category",
+    "save_manual": "Save expense manually",
+    "cancel_manual": "Cancel",
+    "no_categories": "No categories available"
   },
   "settings": {
     "title": "Settings",

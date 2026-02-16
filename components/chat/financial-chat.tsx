@@ -1,16 +1,17 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User, Sparkles } from 'lucide-react'
+import { Send, Bot, User, Sparkles, AlertTriangle, RefreshCw } from 'lucide-react'
 import { processFinancialQuery } from '@/actions/chat'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 type Message = {
     id: string
-    role: 'user' | 'assistant'
+    role: 'user' | 'assistant' | 'system'
     content: string
     timestamp: Date
+    error?: boolean
 }
 
 export function FinancialChat() {
@@ -24,6 +25,9 @@ export function FinancialChat() {
     ])
     const [input, setInput] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+    const [lastQuery, setLastQuery] = useState<string | null>(null)
+    const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null)
+    const [lastErrorId, setLastErrorId] = useState<string | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
 
     const scrollToBottom = () => {
@@ -33,6 +37,42 @@ export function FinancialChat() {
     useEffect(() => {
         scrollToBottom()
     }, [messages])
+
+    const runQuery = async (query: string, userMessageId: string) => {
+        setIsLoading(true)
+        setLastQuery(query)
+        setLastUserMessageId(userMessageId)
+        setLastErrorId(null)
+
+        try {
+            const response = await processFinancialQuery(query)
+
+            const aiMessage: Message = {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: response.text,
+                timestamp: new Date()
+            }
+            
+            setMessages(prev => [...prev, aiMessage])
+        } catch (error) {
+            console.error(error)
+            const errorId = `error-${Date.now()}`
+            setLastErrorId(errorId)
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: errorId,
+                    role: 'system',
+                    error: true,
+                    content: 'Hubo un problema al procesar tu consulta. Revisa tu conexión e intenta de nuevo.',
+                    timestamp: new Date()
+                }
+            ])
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -46,26 +86,16 @@ export function FinancialChat() {
         }
 
         setMessages(prev => [...prev, userMessage])
+        const query = input
         setInput('')
-        setIsLoading(true)
 
-        try {
-            const response = await processFinancialQuery(userMessage.content)
-            
-            const aiMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: response.text,
-                timestamp: new Date()
-            }
-            
-            setMessages(prev => [...prev, aiMessage])
-        } catch (error) {
-            console.error(error)
-            // Show error message
-        } finally {
-            setIsLoading(false)
-        }
+        await runQuery(query, userMessage.id)
+    }
+
+    const handleRetry = async () => {
+        if (!lastQuery || !lastUserMessageId || isLoading) return
+        setMessages(prev => prev.filter(m => m.id !== lastErrorId))
+        await runQuery(lastQuery, lastUserMessageId)
     }
 
     return (
@@ -101,18 +131,43 @@ export function FinancialChat() {
                             )}>
                                 <div className={cn(
                                     "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
-                                    message.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                                    message.role === 'user'
+                                        ? "bg-primary text-primary-foreground"
+                                        : message.error
+                                            ? "bg-red-500/10 text-red-400"
+                                            : "bg-muted text-muted-foreground"
                                 )}>
-                                    {message.role === 'user' ? <User size={14} /> : <Bot size={14} />}
+                                    {message.role === 'user' ? (
+                                        <User size={14} />
+                                    ) : message.error ? (
+                                        <AlertTriangle size={14} />
+                                    ) : (
+                                        <Bot size={14} />
+                                    )}
                                 </div>
                                 
                                 <div className={cn(
                                     "p-3 rounded-2xl text-sm leading-relaxed",
                                     message.role === 'user' 
                                         ? "bg-primary text-primary-foreground rounded-tr-none" 
-                                        : "bg-muted text-foreground rounded-tl-none"
+                                        : message.error
+                                            ? "bg-red-500/10 text-red-100 border border-red-500/40 rounded-tl-none"
+                                            : "bg-muted text-foreground rounded-tl-none"
                                 )}>
-                                    {message.content}
+                                    <div className="whitespace-pre-line">
+                                        {message.content}
+                                    </div>
+                                    {message.error && (
+                                        <button
+                                            type="button"
+                                            onClick={handleRetry}
+                                            disabled={isLoading}
+                                            className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-red-200 hover:text-red-100 hover:underline disabled:opacity-60"
+                                        >
+                                            <RefreshCw className="w-3 h-3" />
+                                            Reintentar con la misma pregunta
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

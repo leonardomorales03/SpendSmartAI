@@ -1,27 +1,31 @@
 import { test, expect } from '@playwright/test';
 import path from 'node:path';
 
+const TEST_EMAIL = process.env.TEST_EMAIL;
+const TEST_PASSWORD = process.env.TEST_PASSWORD;
+const hasCredentials = !!TEST_EMAIL && !!TEST_PASSWORD;
+
 test.describe('Subida de PDF', () => {
+  test.skip(!hasCredentials, 'Faltan TEST_EMAIL y TEST_PASSWORD en el entorno de pruebas');
+
   test('acepta PDF y dispara el análisis sin error visible', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/login');
 
-    // Esperar a que el input principal esté visible (dashboard cargado)
-    await expect(page.getByPlaceholder(/gastaste hoy|quieres saber/)).toBeVisible({ timeout: 10000 });
+    await page.getByLabel('Correo electrónico').fill(TEST_EMAIL!);
+    await page.getByLabel('Contraseña').fill(TEST_PASSWORD!);
+    await page.getByRole('button', { name: 'Iniciar Sesión' }).click();
 
-    // Input de tipo file (oculto, asociado al botón de cámara)
+    await page.waitForURL(/\/$/, { timeout: 10000 });
+
     const fileInput = page.locator('input[type="file"][accept*="pdf"]');
-    await expect(fileInput).toBeAttached();
+    await expect(fileInput).toBeAttached({ timeout: 10000 });
 
     const pdfPath = path.resolve(__dirname, 'fixtures/sample.pdf');
 
-    // Disparar la subida del PDF
     await fileInput.setInputFiles(pdfPath);
 
-    // Esperar a que desaparezca el toast "Analizando PDF..." o que aparezca éxito/error
-    // Si hay error, el toast de error aparecerá; si éxito, el de éxito
     await page.waitForTimeout(4000);
 
-    // No debe mostrarse el mensaje de error de procesamiento
     await expect(page.getByText(/Error al procesar el PDF/)).not.toBeVisible();
   });
 });

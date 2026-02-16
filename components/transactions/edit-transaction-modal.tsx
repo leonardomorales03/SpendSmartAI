@@ -38,6 +38,7 @@ export function EditTransactionModal({ transaction, isOpen, onClose }: EditTrans
         toast.error('Error al actualizar: ' + result.error)
       }
     } catch (error) {
+      console.error('Error updating transaction:', error)
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsSaving(false)

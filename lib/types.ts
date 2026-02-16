@@ -28,5 +28,36 @@ export type AIAnswer = {
     type: 'answer';
     text: string;
     chartType?: 'bar' | 'pie';
-    data?: any[];
+    data?: {
+        label: string;
+        value: number;
+    }[];
 }
+
+export type Subscription = {
+    id: string;
+    user_id: string;
+    name: string;
+    amount: number;
+    currency: string;
+    billing_day: number;
+    frequency: 'monthly' | 'yearly';
+    category_id: string;
+    is_active: boolean;
+    last_payment_date?: string;
+    logo_url?: string; // Brand logo
+    created_at: string;
+    category?: Category; // For UI display
+};
+
+export type SavingGoal = {
+    id: string;
+    user_id: string;
+    name: string;
+    target_amount: number;
+    current_amount: number;
+    deadline: string | null;
+    category: string | null;
+    created_at: string;
+    updated_at: string;
+};

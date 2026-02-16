@@ -7,6 +7,18 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 export function SpendingVelocity({ transactions }: { transactions: Transaction[] }) {
     const stats = calculateStats(transactions);
     const data = stats.weeklyData;
+
+    const hasAnySpending = data.some((item) => item.total > 0);
+
+    if (!hasAnySpending) {
+        return (
+            <div className="p-6 bg-card border border-border rounded-2xl shadow-sm flex flex-col items-center justify-center text-center">
+                <h3 className="font-semibold text-foreground mb-1">Velocidad de Gasto</h3>
+                <p className="text-xs text-muted-foreground">Aún no hay suficientes movimientos para analizar tu ritmo.</p>
+            </div>
+        );
+    }
+
     return (
         <div className="p-6 bg-card border border-border rounded-2xl shadow-sm">
             <div className="mb-4">

@@ -11,6 +11,7 @@ export type UserSettings = {
     currency: string
     locale: string
     language?: 'es' | 'en'
+    has_completed_onboarding?: boolean
 }
 
 export type UserProfile = {
@@ -47,7 +48,8 @@ export async function getSettings() {
         monthly_budget: settings?.monthly_budget || 1000000,
         currency: settings?.currency || 'COP',
         locale: settings?.locale || 'es-CO',
-        language: settings?.language || 'es'
+        language: settings?.language || 'es',
+        has_completed_onboarding: settings?.has_completed_onboarding || false
     }
 
     return {
@@ -60,7 +62,36 @@ export async function getSettings() {
     }
 }
 
-export async function updatePreferences(data: { currency?: string, locale?: string, monthlyBudget?: number, language?: string }) {
+type UpdatePreferencesInput = {
+    currency?: string
+    locale?: string
+    monthlyBudget?: number
+    language?: string
+    hasCompletedOnboarding?: boolean
+}
+
+type TransactionRow = {
+    id: string
+    user_id: string
+    amount: number
+}
+
+type CategoryBudgetRow = {
+    id: string
+    user_id: string
+    category_id: string
+    amount: number
+}
+
+type UserSettingsUpdate = {
+    currency?: string
+    locale?: string
+    monthly_budget?: number
+    language?: string
+    has_completed_onboarding?: boolean
+}
+
+export async function updatePreferences(data: UpdatePreferencesInput) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     
@@ -89,14 +120,20 @@ export async function updatePreferences(data: { currency?: string, locale?: stri
 
     if (existing) {
         // 1. Update Settings
+        const updatePayload: UserSettingsUpdate = {
+            currency: data.currency,
+            locale: data.locale,
+            monthly_budget: data.monthlyBudget,
+            language: data.language
+        }
+        
+        if (data.hasCompletedOnboarding !== undefined) {
+            updatePayload.has_completed_onboarding = data.hasCompletedOnboarding
+        }
+
         const { error: updateError } = await supabase
             .from('user_settings')
-            .update({
-                currency: data.currency,
-                locale: data.locale,
-                monthly_budget: data.monthlyBudget,
-                language: data.language
-            })
+            .update(updatePayload)
             .eq('user_id', user.id)
         error = updateError
 
@@ -121,7 +158,7 @@ export async function updatePreferences(data: { currency?: string, locale?: stri
                 .eq('user_id', user.id);
             
             if (transactions && transactions.length > 0) {
-                const updates = transactions.map(t => ({
+                const updates = (transactions as TransactionRow[]).map(t => ({
                     ...t,
                     amount: t.amount * rate
                 }));
@@ -140,7 +177,7 @@ export async function updatePreferences(data: { currency?: string, locale?: stri
                 .eq('user_id', user.id);
 
             if (catBudgets && catBudgets.length > 0) {
-                const budgetUpdates = catBudgets.map(b => ({
+                const budgetUpdates = (catBudgets as CategoryBudgetRow[]).map(b => ({
                     ...b,
                     amount: b.amount * rate
                 }));
@@ -156,7 +193,8 @@ export async function updatePreferences(data: { currency?: string, locale?: stri
                 currency: data.currency || 'COP',
                 locale: data.locale || 'es-CO',
                 monthly_budget: data.monthlyBudget || 1000000,
-                language: data.language || 'es'
+                language: data.language || 'es',
+                has_completed_onboarding: data.hasCompletedOnboarding || false
             })
         error = insertError
     }
@@ -173,8 +211,8 @@ export async function updatePreferences(data: { currency?: string, locale?: stri
     return { success: true }
 }
 
-function chunkArray(array: any[], size: number) {
-    const chunked = []
+function chunkArray<T>(array: T[], size: number): T[][] {
+    const chunked: T[][] = []
     for (let i = 0; i < array.length; i += size) {
         chunked.push(array.slice(i, i + size))
     }

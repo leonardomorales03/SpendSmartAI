@@ -62,6 +62,7 @@ export default function ResetPasswordPage() {
         toast.success('Contraseña actualizada correctamente')
       }
     } catch (error) {
+      console.error('Error resetting password:', error)
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsLoading(false)

@@ -150,7 +150,12 @@ export async function getBudgetProgress(month: number = new Date().getMonth(), y
                 }
             });
         } else if (aggregatedSpending) {
-            aggregatedSpending.forEach((row: any) => {
+            type AggregatedSpendingRow = {
+                category_id: string | null;
+                total_spent: number | string;
+            };
+
+            (aggregatedSpending as AggregatedSpendingRow[]).forEach((row) => {
                 if (row.category_id) {
                     spendingByCategory.set(row.category_id, Number(row.total_spent));
                 }

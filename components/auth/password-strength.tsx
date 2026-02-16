@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
@@ -10,86 +10,62 @@ interface PasswordStrengthProps {
 }
 
 export function PasswordStrength({ password = '', onStrengthChange }: PasswordStrengthProps) {
-  const [strength, setStrength] = useState(0)
-  const [feedback, setFeedback] = useState<string>('')
+  const hasLength = password.length >= 8
+  const hasUpper = /[A-Z]/.test(password)
+  const hasLower = /[a-z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+  const hasSpecial = /[^A-Za-z0-9]/.test(password)
+  const hasCommonPatterns = /(123456|password|qwerty)/i.test(password)
+
+  let score = 0
+  if (hasLength) score += 1
+  if (hasUpper) score += 1
+  if (hasLower) score += 1
+  if (hasNumber) score += 1
+  if (hasSpecial) score += 1
+  if (hasCommonPatterns) score -= 2
+
+  const meetsRequirements =
+    hasLength && hasUpper && hasLower && hasNumber && hasSpecial && !hasCommonPatterns
+
+  let strength = 0
+  if (score < 2) strength = 0
+  else if (score < 4) strength = 1
+  else if (score < 5) strength = 2
+  else strength = 3
+
+  let feedback = ''
+  switch (strength) {
+    case 0:
+      feedback = 'Débil - Agrega más variedad de caracteres'
+      break
+    case 1:
+      feedback = 'Media - Vas por buen camino'
+      break
+    case 2:
+      feedback = 'Fuerte - Buena contraseña'
+      break
+    case 3:
+      feedback = 'Muy Fuerte - Excelente seguridad'
+      break
+  }
+
+  if (!meetsRequirements) {
+    if (!hasLength) feedback = 'Mínimo 8 caracteres'
+    else if (!hasUpper) feedback = 'Falta mayúscula'
+    else if (!hasLower) feedback = 'Falta minúscula'
+    else if (!hasNumber) feedback = 'Falta número'
+    else if (!hasSpecial) feedback = 'Falta carácter especial'
+  }
+
+  if (hasCommonPatterns) {
+    strength = 0
+    feedback = 'Insegura - Evita patrones comunes como "123456" o "password"'
+  }
 
   useEffect(() => {
-    let score = 0
-    let message = ''
-
-    if (!password) {
-      setStrength(0)
-      setFeedback('')
-      onStrengthChange(false)
-      return
-    }
-
-    // Criterios
-    const hasLength = password.length >= 8
-    const hasUpper = /[A-Z]/.test(password)
-    const hasLower = /[a-z]/.test(password)
-    const hasNumber = /[0-9]/.test(password)
-    const hasSpecial = /[^A-Za-z0-9]/.test(password)
-    const hasCommonPatterns = /(123456|password|qwerty)/i.test(password)
-
-    if (hasLength) score += 1
-    if (hasUpper) score += 1
-    if (hasLower) score += 1
-    if (hasNumber) score += 1
-    if (hasSpecial) score += 1
-    if (hasCommonPatterns) score -= 2
-
-    // Verificar cumplimiento estricto de requisitos mínimos para habilitar
-    const meetsRequirements = hasLength && hasUpper && hasLower && hasNumber && hasSpecial && !hasCommonPatterns
-    
-    // Normalizar score entre 0 y 4
-    let finalScore = 0
-    
-    if (score < 2) finalScore = 0 // Débil
-    else if (score < 4) finalScore = 1 // Media
-    else if (score < 5) finalScore = 2 // Fuerte
-    else finalScore = 3 // Muy Fuerte
-
-    setStrength(finalScore)
-
-    // Determinar mensaje y color
-    let newMessage = ''
-    switch (finalScore) {
-      case 0:
-        newMessage = 'Débil - Agrega más variedad de caracteres'
-        break
-      case 1:
-        newMessage = 'Media - Vas por buen camino'
-        break
-      case 2:
-        newMessage = 'Fuerte - Buena contraseña'
-        break
-      case 3:
-        newMessage = 'Muy Fuerte - Excelente seguridad'
-        break
-    }
-    
-    // Feedback específico de qué falta
-    if (!meetsRequirements) {
-        if (!hasLength) newMessage = 'Mínimo 8 caracteres'
-        else if (!hasUpper) newMessage = 'Falta mayúscula'
-        else if (!hasLower) newMessage = 'Falta minúscula'
-        else if (!hasNumber) newMessage = 'Falta número'
-        else if (!hasSpecial) newMessage = 'Falta carácter especial'
-    }
-
-    // Si tiene patrones comunes, anular todo
-    if (hasCommonPatterns) {
-      setStrength(0)
-      newMessage = 'Insegura - Evita patrones comunes como "123456" o "password"'
-      onStrengthChange(false)
-    } else {
-      // Solo aprobar si cumple TODOS los requisitos estrictos, independientemente del score visual
-      onStrengthChange(meetsRequirements)
-    }
-
-    setFeedback(newMessage)
-  }, [password, onStrengthChange])
+    onStrengthChange(meetsRequirements && !hasCommonPatterns)
+  }, [meetsRequirements, hasCommonPatterns, onStrengthChange])
 
   const getColor = (index: number) => {
     if (strength === 0) return 'bg-red-500'

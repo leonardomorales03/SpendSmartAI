@@ -53,7 +53,16 @@
     "processing_error": "Hubo un error al procesar",
     "anomaly_detected": "⚠️ Detectada anomalía",
     "secure_connection_required": "La grabación requiere una conexión segura (HTTPS).",
-    "browser_not_supported": "Tu navegador no soporta grabación de audio. Intenta usar Chrome o Safari actualizado en HTTPS."
+    "browser_not_supported": "Tu navegador no soporta grabación de audio. Intenta usar Chrome o Safari actualizado en HTTPS.",
+    "manual_fallback_title": "No pudimos entender este gasto",
+    "manual_fallback_subtitle": "Ingresa los datos manualmente para no perderlo.",
+    "field_description": "Descripción",
+    "field_amount": "Monto",
+    "field_date": "Fecha",
+    "field_category": "Categoría",
+    "save_manual": "Guardar gasto manualmente",
+    "cancel_manual": "Cancelar",
+    "no_categories": "No hay categorías disponibles"
   },
   "settings": {
     "title": "Configuración",

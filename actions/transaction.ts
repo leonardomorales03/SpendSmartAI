@@ -1,6 +1,13 @@
 'use server'
 
-import { Transaction, AIAnswer } from '@/lib/types'
+import { Transaction, AIAnswer, Category } from '@/lib/types'
+
+type AiTransaction = {
+    amount?: number;
+    category_id?: string;
+    description?: string;
+    emoji?: string;
+};
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { groq } from '@/lib/groq'
@@ -15,15 +22,37 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
     const buffer = Buffer.from(bytes);
     
     try {
-        // @ts-ignore
-        const PDFParser = require('pdf2json');
+        const pdf2json = await import('pdf2json');
+        type PdfParserErrorEvent = {
+            parserError?: unknown;
+        };
+        type PdfParserInstance = {
+            on: (
+                event: 'pdfParser_dataError' | 'pdfParser_dataReady',
+                cb: (data: PdfParserErrorEvent) => void
+            ) => void;
+            parseBuffer: (buffer: Buffer) => void;
+            getRawTextContent: () => string;
+        };
+        type Pdf2JsonModule = {
+            default?: new (...args: unknown[]) => PdfParserInstance;
+        } | (new (...args: unknown[]) => PdfParserInstance);
+
+        const PdfCtor =
+            (pdf2json as Pdf2JsonModule as { default?: new (...args: unknown[]) => PdfParserInstance })
+                .default ?? (pdf2json as unknown as new (...args: unknown[]) => PdfParserInstance);
         
         const text = await new Promise<string>((resolve, reject) => {
-            const pdfParser = new PDFParser(null, 1); // 1 = text only
+            const pdfParser = new PdfCtor(null, 1);
             
-            pdfParser.on("pdfParser_dataError", (errData: any) => reject(errData.parserError));
+            pdfParser.on("pdfParser_dataError", (errData) => {
+                const error =
+                    errData.parserError instanceof Error
+                        ? errData.parserError
+                        : new Error('Error al procesar el PDF');
+                reject(error);
+            });
             pdfParser.on("pdfParser_dataReady", () => {
-                // getRawTextContent devuelve el texto extraído
                 resolve(pdfParser.getRawTextContent());
             });
 
@@ -93,7 +122,8 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
     console.log('Texto recibido:', text);
 
     const { data: dbCategories } = await supabase.from('categories').select('*');
-    const categoriesList = (dbCategories || []).map((c: any) => `${c.name} (ID: ${c.id})`).join(', ');
+    const categories = (dbCategories || []) as Category[];
+    const categoriesList = categories.map((c) => `${c.name} (ID: ${c.id})`).join(', ');
 
     const completion = await groq.chat.completions.create({
         messages: [
@@ -129,10 +159,12 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
 
     const content = completion.choices[0]?.message?.content || '{"transactions": []}';
     console.log('Respuesta AI:', content);
-
-    const aiResult = JSON.parse(content);
-    const transactions = await Promise.all((aiResult.transactions || []).map(async (t: any) => {
-        const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+    
+    const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
+    const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
+        const category =
+            categories.find((c) => c.id === t.category_id) ||
+            { id: 'unknown', name: 'General', emoji: '📦' };
         const categoryId = t.category_id || category.id;
         
         // Detect anomalies
@@ -224,7 +256,8 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
 
     const supabase = await createClient()
     const { data: dbCategories } = await supabase.from('categories').select('*');
-    const categoriesList = (dbCategories || []).map((c: any) => `${c.name} (ID: ${c.id})`).join(', ');
+    const categories = (dbCategories || []) as Category[];
+    const categoriesList = categories.map((c) => `${c.name} (ID: ${c.id})`).join(', ');
 
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -268,9 +301,11 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
         });
 
         const content = response.choices[0]?.message?.content || '{"transactions": []}';
-        const aiResult = JSON.parse(content);
-        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: any) => {
-            const category = dbCategories?.find((c: any) => c.id === t.category_id) || { id: null, name: 'General', emoji: '📦' };
+        const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
+        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
+            const category =
+                categories.find((c) => c.id === t.category_id) ||
+                { id: 'unknown', name: 'General', emoji: '📦' };
             const categoryId = t.category_id || category.id;
             
             // Detect anomalies

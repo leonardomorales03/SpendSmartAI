@@ -28,7 +28,34 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
     }
 
     const total = transactions.reduce((acc, t) => acc + t.amount, 0);
-    const percentage = Math.min((total / currentBudget) * 100, 100);
+    const safeBudget = currentBudget > 0 ? currentBudget : 1;
+    const percentage = Math.min((total / safeBudget) * 100, 100);
+
+    if (!transactions || transactions.length === 0) {
+        return (
+            <div className="p-6 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl text-white shadow-xl border border-indigo-800/50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="relative space-y-4">
+                    <div className="flex justify-between items-end">
+                        <div>
+                            <p className="text-indigo-300 text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
+                            <h2 className="text-3xl font-bold tracking-tight">{formatCurrency(0)}</h2>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-indigo-300 text-xs mb-1">{t('dashboard.budget')}</p>
+                            <p className="font-semibold text-lg">{formatCurrency(currentBudget)}</p>
+                        </div>
+                    </div>
+                    <div className="relative h-3 bg-black/30 rounded-full overflow-hidden backdrop-blur-sm">
+                        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 via-indigo-400/10 to-transparent animate-pulse" />
+                    </div>
+                    <p className="text-xs text-indigo-200/80 mt-2">
+                        Aún no hay gastos registrados este mes. Cuando empieces a registrar movimientos, verás aquí cuánto presupuesto has usado.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="p-6 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl text-white shadow-xl border border-indigo-800/50 relative overflow-hidden group">
