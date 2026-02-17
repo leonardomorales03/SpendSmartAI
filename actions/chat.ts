@@ -1,8 +1,9 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { groq } from '@/lib/groq'
+import { groq, GROQ_MODELS } from '@/lib/groq'
 import { AIAnswer } from '@/lib/types'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 // Define the available tools/functions for the LLM
 const AVAILABLE_TOOLS = [
@@ -62,6 +63,19 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
     }
 
     try {
+        const rate = await checkRateLimit({
+            key: 'ai_financial_chat',
+            maxRequests: 50,
+            windowSeconds: 60 * 60,
+        })
+
+        if (!rate.allowed) {
+            return {
+                type: 'answer',
+                text: 'Has alcanzado el límite de consultas al chat financiero por hora. Intenta de nuevo más tarde.',
+            }
+        }
+
         // 1. Intent Classification & Tool Selection (Router)
         const routerCompletion = await groq.chat.completions.create({
             messages: [
@@ -88,7 +102,7 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
                     content: query
                 }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: GROQ_MODELS.TEXT_GENERAL,
             response_format: { type: "json_object" }
         });
 
@@ -242,7 +256,7 @@ INSTRUCCIONES IMPORTANTES:
                     content: query
                 }
             ],
-            model: "llama-3.3-70b-versatile"
+            model: GROQ_MODELS.TEXT_FINANCIAL_CHAT
         });
 
         return {

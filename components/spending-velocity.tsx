@@ -42,6 +42,8 @@ export function SpendingVelocity({ transactions }: { transactions: Transaction[]
                             fontSize={10}
                             tickLine={false}
                             axisLine={false}
+                            tickMargin={8}
+                            interval="preserveStartEnd"
                         />
                         <YAxis hide />
                         <Tooltip

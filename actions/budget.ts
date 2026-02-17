@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { groq } from '@/lib/groq'
+import { groq, GROQ_MODELS } from '@/lib/groq'
 
 export async function getBudget() {
     try {
@@ -340,7 +340,7 @@ export async function getAIBudgetPrediction(categoriesProgress: CategoryBudgetPr
                     content: `Datos actuales: ${JSON.stringify(context)}`
                 }
             ],
-            model: "llama-3.3-70b-versatile",
+            model: GROQ_MODELS.TEXT_GENERAL,
             response_format: { type: "json_object" }
         });
 

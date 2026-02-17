@@ -10,7 +10,8 @@ type AiTransaction = {
 };
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
-import { groq } from '@/lib/groq'
+import { groq, GROQ_MODELS } from '@/lib/groq'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { detectAnomaly } from './anomaly'
 import { checkDailyStreak, checkAchievements, addXp } from './gamification'
 
@@ -21,6 +22,19 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
+    const rate = await checkRateLimit({
+        key: 'ai_pdf_extract',
+        maxRequests: 50,
+        windowSeconds: 60 * 60,
+    })
+
+    if (!rate.allowed) {
+        return {
+            type: 'answer',
+            text: 'Has alcanzado el límite de análisis de documentos por hora. Intenta de nuevo más tarde.',
+        } as AIAnswer
+    }
+
     try {
         const pdf2json = await import('pdf2json');
         type PdfParserErrorEvent = {
@@ -73,6 +87,19 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
+    const rate = await checkRateLimit({
+        key: 'ai_text_extract',
+        maxRequests: 50,
+        windowSeconds: 60 * 60,
+    })
+
+    if (!rate.allowed) {
+        return {
+            type: 'answer',
+            text: 'Has alcanzado el límite de solicitudes de IA por hora. Intenta de nuevo más tarde.',
+        } as AIAnswer
+    }
+
     // 1. DETECT IF IT IS A QUESTION (ASK MY MONEY)
     if (text.startsWith('?')) {
         if (!user) {
@@ -82,110 +109,123 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
             } as AIAnswer;
         }
 
-        // Obtenemos historial reciente para que la IA responda con contexto real
-        const { data: recentTransactions } = await supabase
-            .from('transactions')
-            .select('*, category:categories(name)')
-            .eq('user_id', user.id)
-            .limit(20);
+        try {
+            // Obtenemos historial reciente para que la IA responda con contexto real
+            const { data: recentTransactions } = await supabase
+                .from('transactions')
+                .select('*, category:categories(name)')
+                .eq('user_id', user.id)
+                .limit(20);
 
-        // NUEVO: Obtenemos los presupuestos por categoría
-        const { data: categoryBudgets } = await supabase
-            .from('category_budgets')
-            .select('amount, category:categories(name)')
-            .eq('user_id', user.id);
+            // Obtenemos los presupuestos por categoría
+            const { data: categoryBudgets } = await supabase
+                .from('category_budgets')
+                .select('amount, category:categories(name)')
+                .eq('user_id', user.id);
 
-        const completion = await groq.chat.completions.create({
-            messages: [
-                {
-                    role: "system",
-                    content: "Eres un asistente financiero experto. Responde preguntas sobre los gastos y presupuestos del usuario basados en los datos proporcionados. Puedes calcular totales y resumir información. Sé breve y amigable. Si no hay datos, dilo."
-                },
-                {
-                    role: "user",
-                    content: `Datos de gastos recientes: ${JSON.stringify(recentTransactions)}. 
-                    Presupuestos por categoría: ${JSON.stringify(categoryBudgets)}. 
-                    Pregunta: ${text.substring(1)}`
-                },
-            ],
-            model: "llama-3.3-70b-versatile",
-        });
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    {
+                        role: "system",
+                        content: "Eres un asistente financiero experto. Responde preguntas sobre los gastos y presupuestos del usuario basados en los datos proporcionados. Puedes calcular totales y resumir información. Sé breve y amigable. Si no hay datos, dilo."
+                    },
+                    {
+                        role: "user",
+                        content: `Datos de gastos recientes: ${JSON.stringify(recentTransactions)}. 
+                        Presupuestos por categoría: ${JSON.stringify(categoryBudgets)}. 
+                        Pregunta: ${text.substring(1)}`
+                    },
+                ],
+                model: GROQ_MODELS.TEXT_GENERAL,
+            });
 
-        return {
-            type: 'answer',
-            text: completion.choices[0]?.message?.content || "No pude procesar tu pregunta.",
-        } as AIAnswer;
+            return {
+                type: 'answer',
+                text: completion.choices[0]?.message?.content || "No pude procesar tu pregunta.",
+            } as AIAnswer;
+        } catch (error) {
+            console.error('Error en IA de preguntas financieras:', error);
+            return {
+                type: 'answer',
+                text: "Lo siento, hubo un problema al usar la IA para responder tu pregunta. Intenta de nuevo más tarde o reformúlala de forma más simple.",
+            } as AIAnswer;
+        }
     }
 
     // 2. NORMAL TRANSACTION EXTRACTION WITH REAL AI
     console.log('--- PROCESANDO CON IA (Multi-Transaction) ---');
     console.log('Texto recibido:', text);
 
-    const { data: dbCategories } = await supabase.from('categories').select('*');
-    const categories = (dbCategories || []) as Category[];
-    const categoriesList = categories.map((c) => `${c.name} (ID: ${c.id})`).join(', ');
+    try {
+        const { data: dbCategories } = await supabase.from('categories').select('*');
+        const categories = (dbCategories || []) as Category[];
+        const categoriesList = categories.map((c) => `${c.name} (ID: ${c.id})`).join(', ');
 
-    const completion = await groq.chat.completions.create({
-        messages: [
-            {
-                role: "system",
-                content: `Eres un extractor de datos bancarios. Tu objetivo es convertir lenguaje natural en un array de transacciones JSON. 
-                Contexto: Colombia. 
-                Si el usuario dice 'k' o 'mil', multiplícalo (ej: 50k = 50000). 
-                Categorías disponibles (USA LOS IDs PROPORCIONADOS): [${categoriesList}].
-                
-                IMPORTANTE: Si el usuario menciona múltiples gastos (ej: "4000 en comida y 10000 en gasolina"), extrae CADA UNO por separado.
-                
-                Responde ÚNICAMENTE con este JSON:
+        const completion = await groq.chat.completions.create({
+            messages: [
                 {
-                    "transactions": [
-                        {
-                            "amount": number,
-                            "category_id": "string-uuid",
-                            "description": "Limpiar descripción (ej: 'Pizza')",
-                            "emoji": "emoji sugerido"
-                        }
-                    ]
-                }`
-            },
-            {
-                role: "user",
-                content: text
-            },
-        ],
-        model: "llama-3.3-70b-versatile",
-        response_format: { type: "json_object" },
-    });
+                    role: "system",
+                    content: `Eres un extractor de datos bancarios. Tu objetivo es convertir lenguaje natural en un array de transacciones JSON. 
+                    Contexto: Colombia. 
+                    Si el usuario dice 'k' o 'mil', multiplícalo (ej: 50k = 50000). 
+                    Categorías disponibles (USA LOS IDs PROPORCIONADOS): [${categoriesList}].
+                    
+                    IMPORTANTE: Si el usuario menciona múltiples gastos (ej: "4000 en comida y 10000 en gasolina"), extrae CADA UNO por separado.
+                    
+                    Responde ÚNICAMENTE con este JSON:
+                    {
+                        "transactions": [
+                            {
+                                "amount": number,
+                                "category_id": "string-uuid",
+                                "description": "Limpiar descripción (ej: 'Pizza')",
+                                "emoji": "emoji sugerido"
+                            }
+                        ]
+                    }`
+                },
+                {
+                    role: "user",
+                    content: text
+                },
+            ],
+            model: GROQ_MODELS.TEXT_GENERAL,
+            response_format: { type: "json_object" },
+        });
 
-    const content = completion.choices[0]?.message?.content || '{"transactions": []}';
-    console.log('Respuesta AI:', content);
-    
-    const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
-    const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
-        const category =
-            categories.find((c) => c.id === t.category_id) ||
-            { id: 'unknown', name: 'General', emoji: '📦' };
-        const categoryId = t.category_id || category.id;
+        const content = completion.choices[0]?.message?.content || '{"transactions": []}';
+        console.log('Respuesta AI:', content);
         
-        // Detect anomalies
-        let warning: string | undefined;
-        if (user && categoryId) {
-             warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
-        }
+        const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
+        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
+            const category =
+                categories.find((c) => c.id === t.category_id) ||
+                { id: 'unknown', name: 'General', emoji: '📦' };
+            const categoryId = t.category_id || category.id;
+            
+            // Detect anomalies
+            let warning: string | undefined;
+            if (user && categoryId) {
+                 warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
+            }
 
-        return {
-            id: crypto.randomUUID(),
-            amount: t.amount || 0,
-            category_id: categoryId,
-            category: category,
-            description: t.description || text,
-            date: new Date().toISOString(),
-            emoji: t.emoji || category.emoji || '📦',
-            warning
-        } as Transaction;
-    }));
+            return {
+                id: crypto.randomUUID(),
+                amount: t.amount || 0,
+                category_id: categoryId,
+                category: category,
+                description: t.description || text,
+                date: new Date().toISOString(),
+                emoji: t.emoji || category.emoji || '📦',
+                warning
+            } as Transaction;
+        }));
 
-    return transactions;
+        return transactions;
+    } catch (error) {
+        console.error('Error en extracción de transacciones con IA:', error);
+        return [];
+    }
 }
 
 export async function saveTransaction(transaction: Transaction) {
@@ -236,9 +276,19 @@ export async function transcribeAudio(formData: FormData) {
     const file = formData.get('file') as File;
     if (!file) throw new Error('No se proporcionó ningún archivo de audio');
 
+    const rate = await checkRateLimit({
+        key: 'ai_audio_transcription',
+        maxRequests: 50,
+        windowSeconds: 60 * 60,
+    })
+
+    if (!rate.allowed) {
+        throw new Error('Has alcanzado el límite de transcripciones de audio por hora. Intenta de nuevo más tarde.');
+    }
+
     const transcription = await groq.audio.transcriptions.create({
         file: file,
-        model: "whisper-large-v3",
+        model: GROQ_MODELS.AUDIO_TRANSCRIPTION,
         response_format: "json",
         language: "es",
     });
@@ -253,6 +303,19 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
+
+    const rate = await checkRateLimit({
+        key: 'ai_image_extract',
+        maxRequests: 50,
+        windowSeconds: 60 * 60,
+    })
+
+    if (!rate.allowed) {
+        return {
+            type: 'answer',
+            text: 'Has alcanzado el límite de análisis de imágenes por hora. Intenta de nuevo más tarde.',
+        } as AIAnswer
+    }
 
     const supabase = await createClient()
     const { data: dbCategories } = await supabase.from('categories').select('*');
@@ -296,7 +359,7 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                     ],
                 },
             ],
-            model: "meta-llama/llama-4-scout-17b-16e-instruct",
+            model: GROQ_MODELS.IMAGE_EXTRACTION,
             response_format: { type: "json_object" },
         });
 
@@ -395,7 +458,7 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
             amount: updates.amount,
             description: updates.description,
             date: updates.date,
-            // category_id: updates.category_id, // TODO: Enable when we have a category selector
+            category_id: updates.category_id,
         })
         .eq('id', id)
         .eq('user_id', user.id);

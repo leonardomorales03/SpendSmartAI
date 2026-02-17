@@ -65,7 +65,7 @@ export function StatsGrid({ transactions }: { transactions: Transaction[] }) {
     ];
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {items.map((item, idx) => (
                 <motion.div
                     key={item.title}

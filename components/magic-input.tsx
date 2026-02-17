@@ -9,22 +9,21 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import confetti from 'canvas-confetti'
 import { useSettings } from '@/components/providers/settings-provider'
+import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 
 export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
     const { t } = useSettings()
     const [input, setInput] = useState('')
     const [lastRawText, setLastRawText] = useState('')
     const [isPending, startTransition] = useTransition()
-    const [isRecording, setIsRecording] = useState(false)
-    const mediaRecorder = useRef<MediaRecorder | null>(null)
-    const audioChunks = useRef<Blob[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    const silenceStartRef = useRef<number | null>(null);
-    const animationFrameRef = useRef<number | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const [silenceWarning, setSilenceWarning] = useState<number | null>(null);
+    const { isRecording, silenceWarning, toggleRecording } = useAudioRecorder({
+        onTranscription: (text) => setInput(text),
+        getMessage: (key) => t(key as any),
+        transcribe: transcribeAudio,
+    })
 
     const [showManualFallback, setShowManualFallback] = useState(false);
     const [manualDescription, setManualDescription] = useState('');
@@ -37,164 +36,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
 
     const isQuestion = input.trim().startsWith('?');
 
-    const getSupportedMimeType = () => {
-        const types = [
-            'audio/mp4',
-            'audio/webm;codecs=opus',
-            'audio/webm',
-            'audio/ogg;codecs=opus',
-            'audio/wav',
-            'audio/aac'
-        ];
-        
-        for (const type of types) {
-            if (MediaRecorder.isTypeSupported(type)) {
-                return type;
-            }
-        }
-        return ''; // Let browser decide default
-    };
-
-    const stopRecording = (autoStopped = false) => {
-        if (mediaRecorder.current && mediaRecorder.current.state === 'recording') {
-            mediaRecorder.current.stop();
-            setIsRecording(false);
-            mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
-            
-            if (autoStopped) {
-                toast.info(t('magicInput.silence_stop'));
-            }
-        }
-    };
-
-    const detectSilence = (analyser: AnalyserNode, dataArray: Uint8Array) => {
-        analyser.getByteFrequencyData(dataArray as any);
-        
-        // Calcular volumen promedio
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-            sum += dataArray[i];
-        }
-        const average = sum / dataArray.length;
-        
-        // Umbral de silencio (ajustable)
-        const SILENCE_THRESHOLD = 10; 
-        const MAX_SILENCE_DURATION = 5000; // 5 segundos
-        const WARNING_THRESHOLD = 2000; // Mostrar aviso a los 2 segundos de silencio
-
-        if (average < SILENCE_THRESHOLD) {
-            if (!silenceStartRef.current) {
-                silenceStartRef.current = Date.now();
-            } else {
-                const silenceDuration = Date.now() - silenceStartRef.current;
-                
-                // Mostrar cuenta regresiva si estamos cerca del límite
-                if (silenceDuration > WARNING_THRESHOLD) {
-                    const remainingSeconds = Math.ceil((MAX_SILENCE_DURATION - silenceDuration) / 1000);
-                    setSilenceWarning(remainingSeconds > 0 ? remainingSeconds : 0);
-                }
-
-                // Detener si excedemos el tiempo máximo
-                if (silenceDuration >= MAX_SILENCE_DURATION) {
-                    stopRecording(true); // true indica parada automática
-                    return;
-                }
-            }
-        } else {
-            // Se detectó voz, resetear temporizadores
-            silenceStartRef.current = null;
-            setSilenceWarning(null);
-        }
-
-        animationFrameRef.current = requestAnimationFrame(() => detectSilence(analyser, dataArray));
-    };
-
-    const startRecording = async () => {
-        try {
-            // ... (verificaciones existentes) ...
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                // ... (fallback code) ...
-                // @ts-ignore
-                const getUserMedia = navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
-                if (!getUserMedia) {
-                    throw new Error(t('magicInput.browser_not_supported'));
-                }
-            }
-
-            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-                 throw new Error(t('magicInput.secure_connection_required'));
-            }
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            
-            // Configurar Web Audio API para detección de silencio
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            audioContextRef.current = audioContext;
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyser = audioContext.createAnalyser();
-            analyser.fftSize = 256;
-            source.connect(analyser);
-            
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            
-            silenceStartRef.current = null;
-            setSilenceWarning(null);
-            detectSilence(analyser, dataArray);
-
-            const mimeType = getSupportedMimeType();
-            // ... (resto de inicialización de MediaRecorder) ...
-            
-            console.log('Using MIME type:', mimeType);
-
-            mediaRecorder.current = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-            audioChunks.current = [];
-
-            mediaRecorder.current.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunks.current.push(event.data);
-                }
-            };
-
-            mediaRecorder.current.onstop = async () => {
-                // Limpiar contexto de audio y animación
-                if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-                if (audioContextRef.current) {
-                    audioContextRef.current.close();
-                    audioContextRef.current = null;
-                }
-                setSilenceWarning(null);
-
-                const type = mediaRecorder.current?.mimeType || mimeType || 'audio/webm';
-                const audioBlob = new Blob(audioChunks.current, { type });
-                
-                // Determine extension based on type
-                let extension = 'wav';
-                if (type.includes('mp4') || type.includes('aac')) extension = 'm4a';
-                else if (type.includes('webm')) extension = 'webm';
-                else if (type.includes('ogg')) extension = 'ogg';
-
-                const formData = new FormData();
-                formData.append('file', audioBlob, `audio.${extension}`);
-
-                startTransition(async () => {
-                    try {
-                        const text = await transcribeAudio(formData);
-                        setInput(text);
-                        toast.success(t('magicInput.audio_transcribed'));
-                    } catch (error) {
-                        toast.error(t('magicInput.transcription_error'));
-                        console.error(error);
-                    }
-                });
-            };
-
-            mediaRecorder.current.start();
-            setIsRecording(true);
-        } catch (err) {
-            toast.error(t('magicInput.mic_error'));
-            console.error(err);
-        }
+    const handleToggleRecording = () => {
+        startTransition(async () => {
+            toggleRecording();
+        });
     };
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -237,8 +82,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     if (t_.warning) {
                         toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });
                     }
-
                     toast.success(t('magicInput.document_saved'));
+                } else {
+                    const aiAnswer = result as AIAnswer;
+                    toast.info(aiAnswer.text);
                 }
             } catch (error) {
                 toast.error(isPdf ? t('magicInput.error_pdf') : t('magicInput.error_file'));
@@ -326,7 +173,8 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });
                     }
                 } else {
-                    toast.info(t('magicInput.ai_answered'));
+                    const aiAnswer = result as AIAnswer;
+                    toast.info(aiAnswer.text);
                 }
 
             } catch (error) {
@@ -478,10 +326,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     </div>
 
                     <div className="flex items-center gap-1 pl-3 pb-3 h-[60px] transition-all duration-300"> 
-                         {isRecording ? (
+                        {isRecording ? (
                             <button
                                 type="button"
-                                onClick={() => stopRecording(false)}
+                                onClick={handleToggleRecording}
                                 className="text-red-500 animate-pulse cursor-pointer p-2 hover:bg-white/5 rounded-full transition-colors relative"
                             >
                                 <StopCircle className="w-6 h-6" />
@@ -498,7 +346,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                             )}>
                                 <button
                                     type="button"
-                                    onClick={startRecording}
+                                    onClick={handleToggleRecording}
                                     className="text-zinc-400 hover:text-indigo-400 transition-all duration-300 cursor-pointer p-2 hover:bg-white/5 rounded-full"
                                 >
                                     <Mic className="w-6 h-6" />

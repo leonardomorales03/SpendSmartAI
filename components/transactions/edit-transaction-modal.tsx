@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Transaction } from '@/lib/types'
+import { useEffect, useState } from 'react'
+import { Transaction, Category } from '@/lib/types'
 import { updateTransaction } from '@/actions/transaction'
+import { getCategories } from '@/actions/categories'
 import { toast } from 'sonner'
 import { X, Save, Loader2 } from 'lucide-react'
 
@@ -17,6 +18,28 @@ export function EditTransactionModal({ transaction, isOpen, onClose }: EditTrans
   const [amount, setAmount] = useState(transaction.amount.toString())
   const [date, setDate] = useState(new Date(transaction.date).toISOString().split('T')[0])
   const [isSaving, setIsSaving] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoryId, setCategoryId] = useState(transaction.category_id)
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false)
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        setIsLoadingCategories(true)
+        const data = await getCategories()
+        setCategories(data || [])
+      } catch (error) {
+        console.error('Error loading categories:', error)
+        toast.error('Error al cargar las categorías')
+      } finally {
+        setIsLoadingCategories(false)
+      }
+    }
+
+    if (isOpen) {
+      loadCategories()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -29,6 +52,7 @@ export function EditTransactionModal({ transaction, isOpen, onClose }: EditTrans
         description,
         amount: parseFloat(amount),
         date: new Date(date).toISOString(),
+        category_id: categoryId,
       })
 
       if (result.success) {
@@ -91,6 +115,22 @@ export function EditTransactionModal({ transaction, isOpen, onClose }: EditTrans
                 required
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Categoría</label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              disabled={isLoadingCategories || isSaving}
+              className="w-full px-3 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
+            >
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.emoji} {cat.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="pt-2 flex gap-3 justify-end">

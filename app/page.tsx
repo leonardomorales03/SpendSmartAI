@@ -1,4 +1,4 @@
-import { Dashboard } from "@/components/dashboard";
+import { DashboardRefined as Dashboard } from "@/components/dashboard-refined";
 import { Transaction, SavingGoal } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/header";
@@ -55,9 +55,9 @@ export default async function Home() {
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
       <Header email={user.email} />
 
-      <Dashboard 
-        initialTransactions={transactions} 
-        budget={initialBudget} 
+      <Dashboard
+        initialTransactions={transactions}
+        budget={initialBudget}
         userProgress={userProgress}
         subscriptions={subscriptions}
         savingGoals={savingGoals}
