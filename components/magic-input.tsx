@@ -62,7 +62,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     if (onTransactionAdded) {
                         onTransactionAdded(result);
                     }
-
+                    for (const t_ of result) {
+                        await saveTransaction(t_);
+                    }
+                    
                     const warnings = result.filter(t => t.warning);
                     if (warnings.length > 0) {
                          toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
@@ -74,6 +77,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         onTransactionAdded([result as Transaction]);
                     }
                     const t_ = result as Transaction;
+                    await saveTransaction(t_);
 
                     if (t_.warning) {
                         toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });

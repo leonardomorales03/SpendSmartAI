@@ -83,12 +83,15 @@ export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetPro
                 <div className="space-y-3">
                     {upcoming.map(sub => {
                         const isToday = sub.billing_day === today
-                        const fallbackIcon = sub.category?.emoji || (sub.name ? sub.name.charAt(0).toUpperCase() : '📅')
                         return (
                             <div key={sub.id} className={`flex justify-between items-center p-3 rounded-xl backdrop-blur-sm ${isToday ? 'bg-amber-500/20 border border-amber-500/50' : 'bg-white/10'}`}>
                                 <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full flex-shrink-0 bg-white/10 flex items-center justify-center text-xs">
-                                        <span>{fallbackIcon}</span>
+                                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-white/10 flex items-center justify-center">
+                                        {sub.logo_url ? (
+                                            <img src={sub.logo_url} alt={sub.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-xs">{sub.category?.emoji || '📅'}</span>
+                                        )}
                                     </div>
                                     <div className="flex flex-col">
                                         <span className="font-medium text-sm truncate max-w-[100px]">{sub.name}</span>

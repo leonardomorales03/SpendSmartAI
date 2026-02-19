@@ -1,6 +1,5 @@
 'use client'
 
-import { WisdomBanner } from "@/components/wisdom-banner";
 import { useSettings } from "@/components/providers/settings-provider";
 import Link from "next/link";
 
@@ -13,7 +12,6 @@ export function Header({ email }: { email?: string }) {
                 {t('dashboard.title')}
             </h1>
             <div className="flex flex-col items-center justify-center gap-2">
-                <WisdomBanner />
                 <div className="flex flex-wrap justify-center items-center gap-3 text-xs text-zinc-500">
                     <div className="flex items-center gap-2">
                         {profile?.avatarUrl && (

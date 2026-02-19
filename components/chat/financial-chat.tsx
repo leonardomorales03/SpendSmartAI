@@ -76,33 +76,17 @@ export function FinancialChat() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        const trimmed = input.trim()
-        if (!trimmed || isLoading) return
-        if (trimmed.length > 500) {
-            const errorId = `error-${Date.now()}`
-            setLastErrorId(errorId)
-            setMessages(prev => [
-                ...prev,
-                {
-                    id: errorId,
-                    role: 'system',
-                    error: true,
-                    content: 'Tu pregunta es demasiado larga. Intenta resumirla un poco antes de enviarla.',
-                    timestamp: new Date()
-                }
-            ])
-            return
-        }
+        if (!input.trim() || isLoading) return
 
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
-            content: trimmed,
+            content: input,
             timestamp: new Date()
         }
 
         setMessages(prev => [...prev, userMessage])
-        const query = trimmed
+        const query = input
         setInput('')
 
         await runQuery(query, userMessage.id)
@@ -212,36 +196,7 @@ export function FinancialChat() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 border-t border-border bg-background/50 backdrop-blur-sm space-y-3">
-                <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                    <span className="font-semibold uppercase tracking-wide text-[10px] text-muted-foreground/80">
-                        Ejemplos rápidos:
-                    </span>
-                    <button
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => setInput('¿Cuánto gasté en comida la semana pasada?')}
-                        className="px-3 py-1 rounded-full bg-muted/80 hover:bg-muted text-xs hover:text-foreground transition-colors"
-                    >
-                        ¿Cuánto gasté en comida la semana pasada?
-                    </button>
-                    <button
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => setInput('¿Cuánto gasté en leche el mes pasado?')}
-                        className="px-3 py-1 rounded-full bg-muted/80 hover:bg-muted text-xs hover:text-foreground transition-colors"
-                    >
-                        ¿Cuánto gasté en leche el mes pasado?
-                    </button>
-                    <button
-                        type="button"
-                        disabled={isLoading}
-                        onClick={() => setInput('¿Qué compré la semana pasada de mercado?')}
-                        className="px-3 py-1 rounded-full bg-muted/80 hover:bg-muted text-xs hover:text-foreground transition-colors"
-                    >
-                        ¿Qué compré la semana pasada de mercado?
-                    </button>
-                </div>
+            <div className="p-4 border-t border-border bg-background/50 backdrop-blur-sm">
                 <form onSubmit={handleSubmit} className="flex gap-2 relative">
                     <input
                         type="text"
@@ -249,7 +204,6 @@ export function FinancialChat() {
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Pregunta sobre tus gastos..."
                         className="flex-1 bg-muted/50 border-none focus:ring-2 focus:ring-primary/20 rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground/70"
-                        maxLength={600}
                         disabled={isLoading}
                     />
                     <button

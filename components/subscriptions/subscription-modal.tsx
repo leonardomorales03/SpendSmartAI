@@ -148,22 +148,21 @@ export function SubscriptionModal({ subscription, categories, presets = [], isOp
                     <span>Populares</span>
                 </div>
                 <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
-                    {presets.map(preset => {
-                        const fallback = preset.icon || (preset.name ? preset.name.charAt(0).toUpperCase() : '★')
-                        return (
-                            <button
-                                key={preset.id}
-                                type="button"
-                                onClick={() => handlePresetSelect(preset)}
-                                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all hover:scale-105"
-                            >
-                                <span className="w-4 h-4 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px]">
-                                    {fallback}
-                                </span>
-                                {preset.name}
-                            </button>
-                        )
-                    })}
+                    {presets.map(preset => (
+                        <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => handlePresetSelect(preset)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all hover:scale-105"
+                        >
+                            {preset.logo_url ? (
+                                <img src={preset.logo_url} alt={preset.name} className="w-4 h-4 rounded-full object-cover" />
+                            ) : (
+                                <span>{preset.icon}</span>
+                            )}
+                            {preset.name}
+                        </button>
+                    ))}
                 </div>
             </div>
         )}

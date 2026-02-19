@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { MagicInput } from '@/components/magic-input'
 import { SpendingChart } from '@/components/spending-chart'
 import { CategoryChart } from '@/components/category-chart'
@@ -10,7 +10,7 @@ import { SubscriptionWidget } from '@/components/subscription-widget'
 import { PredictiveInsights } from '@/components/predictive-insights'
 import { FinancialSummaryCard } from '@/components/financial-summary-card'
 import { QuickActions } from '@/components/quick-actions'
-import { ArrowRight, Settings, Bell, Sun, CalendarRange, CalendarDays } from 'lucide-react'
+import { ArrowRight, Settings, Bell } from 'lucide-react'
 import Link from 'next/link'
 
 import { LevelCard } from '@/components/gamification/level-card'
@@ -18,15 +18,6 @@ import { useSettings } from '@/components/providers/settings-provider'
 
 import { Subscription, SavingGoal } from '@/lib/types'
 import { SavingGoalsCard } from '@/components/saving-goals-card'
-import { DebtsSummaryCard } from '@/components/debts-summary-card'
-import { motion } from 'framer-motion'
-
-const DASHBOARD_PHRASES = [
-    'Tu dinero, bajo control y sin estrés.',
-    'Pequeños hábitos hoy, grandes resultados en tus finanzas mañana.',
-    'Gasta con intención, ahorra con claridad.',
-    'Cada movimiento aquí te acerca a tus metas.'
-]
 
 interface DashboardProps {
     initialTransactions: any[]
@@ -34,84 +25,31 @@ interface DashboardProps {
     userProgress: any
     subscriptions: Subscription[]
     savingGoals: SavingGoal[]
-    initialDebts?: any[]
 }
 
-export function DashboardRefined({
-    initialTransactions,
-    budget,
-    userProgress,
-    subscriptions,
-    savingGoals,
-    initialDebts = [],
-}: DashboardProps) {
+export function DashboardRefined({ initialTransactions, budget, userProgress, subscriptions, savingGoals }: DashboardProps) {
     const { t, formatCurrency } = useSettings()
     const [transactions, setTransactions] = useState(initialTransactions)
     const [goals, setGoals] = useState<SavingGoal[]>(savingGoals)
-    const [debts] = useState(initialDebts)
-    const [phraseIndex, setPhraseIndex] = useState(0)
-
-    useEffect(() => {
-        if (DASHBOARD_PHRASES.length <= 1) return
-        const id = setInterval(() => {
-            setPhraseIndex(prev => (prev + 1) % DASHBOARD_PHRASES.length)
-        }, 7000)
-        return () => clearInterval(id)
-    }, [])
 
     const handleTransactionAdded = (newTransactions: any[]) => {
         setTransactions(prev => [...newTransactions, ...prev])
     }
 
+    // Calculate totals for summary card
     const totalExpenses = transactions.reduce((acc, t) => acc + t.amount, 0)
     const estimatedIncome = budget
-
-    const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const startOfWeek = new Date(now)
-    const day = startOfWeek.getDay()
-    const diff = day === 0 ? 6 : day - 1
-    startOfWeek.setDate(startOfWeek.getDate() - diff)
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-    const spentToday = transactions
-        .filter(t => {
-            const d = new Date(t.date)
-            return d >= startOfToday
-        })
-        .reduce((acc, t) => acc + t.amount, 0)
-
-    const spentWeek = transactions
-        .filter(t => {
-            const d = new Date(t.date)
-            return d >= startOfWeek
-        })
-        .reduce((acc, t) => acc + t.amount, 0)
-
-    const spentMonth = transactions
-        .filter(t => {
-            const d = new Date(t.date)
-            return d >= startOfMonth
-        })
-        .reduce((acc, t) => acc + t.amount, 0)
 
     return (
         <div className="space-y-6 relative max-w-[1600px] mx-auto pb-20">
 
+            {/* Top Bar: Greeting & Settings */}
             <div className="flex justify-between items-center py-2">
                 <div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                         Hola, {userProgress?.display_name || 'Usuario'} 👋
                     </h1>
-                    <motion.p
-                        key={phraseIndex}
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-zinc-500 text-sm mt-1"
-                    >
-                        {DASHBOARD_PHRASES[phraseIndex]}
-                    </motion.p>
+                    <p className="text-zinc-500 text-sm">Aquí tienes tu resumen financiero.</p>
                 </div>
                 <div className="flex gap-2">
                     <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
@@ -137,80 +75,6 @@ export function DashboardRefined({
 
                     {/* Quick Actions */}
                     <QuickActions />
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.25 }}
-                            className="p-4 md:p-5 bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col justify-between hover:bg-card/80 transition-all duration-300 shadow-sm hover:shadow-md group"
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500 group-hover:scale-105 transition-transform">
-                                    <Sun className="w-4 h-4 md:w-5 md:h-5" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Hoy
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-[11px] md:text-xs text-muted-foreground mb-0.5">
-                                    Gasto de hoy
-                                </p>
-                                <p className="text-lg md:text-2xl font-bold tracking-tight text-foreground">
-                                    {formatCurrency(spentToday)}
-                                </p>
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.25, delay: 0.05 }}
-                            className="p-4 md:p-5 bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col justify-between hover:bg-card/80 transition-all duration-300 shadow-sm hover:shadow-md group"
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 group-hover:scale-105 transition-transform">
-                                    <CalendarRange className="w-4 h-4 md:w-5 md:h-5" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Esta semana
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-[11px] md:text-xs text-muted-foreground mb-0.5">
-                                    Gasto acumulado
-                                </p>
-                                <p className="text-lg md:text-2xl font-bold tracking-tight text-foreground">
-                                    {formatCurrency(spentWeek)}
-                                </p>
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.25, delay: 0.1 }}
-                            className="p-4 md:p-5 bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col justify-between hover:bg-card/80 transition-all duration-300 shadow-sm hover:shadow-md group"
-                        >
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-105 transition-transform">
-                                    <CalendarDays className="w-4 h-4 md:w-5 md:h-5" />
-                                </div>
-                                <span className="text-[10px] md:text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                                    Este mes
-                                </span>
-                            </div>
-                            <div>
-                                <p className="text-[11px] md:text-xs text-muted-foreground mb-0.5">
-                                    Gasto del mes
-                                </p>
-                                <p className="text-lg md:text-2xl font-bold tracking-tight text-foreground">
-                                    {formatCurrency(spentMonth)}
-                                </p>
-                            </div>
-                        </motion.div>
-                    </div>
 
                     {/* Stats Overview - Grid System Improved for Mobile */}
                     {/* Mobile: 1 col, Tablet: 2 cols, Desktop: 4 cols */}
@@ -281,9 +145,6 @@ export function DashboardRefined({
                         budget={budget}
                         savingGoals={goals}
                     />
-
-                    {/* Debts Summary */}
-                    <DebtsSummaryCard debts={debts} />
 
                     <SavingGoalsCard initialGoals={goals} onGoalsChange={setGoals} />
 
