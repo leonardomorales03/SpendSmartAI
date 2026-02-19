@@ -16,6 +16,18 @@ export type Transaction = {
     warning?: string; // Anomaly detection warning
 };
 
+export type TransactionItem = {
+    id: string;
+    user_id: string;
+    transaction_id: string;
+    name: string;
+    quantity: number;
+    unit_price: number;
+    total_amount: number;
+    category?: string | null;
+    created_at: string;
+};
+
 export type TransactionDraft = {
     amount: number;
     category_name: string; // AI might return name, we map to ID later

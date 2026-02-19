@@ -276,11 +276,7 @@ export function SubscriptionsClient({ initialSubscriptions, categories, presets 
               >
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl overflow-hidden ${!s.is_active ? 'bg-zinc-100 dark:bg-zinc-900' : 'bg-indigo-50 dark:bg-indigo-900/20'}`}>
-                        {s.logo_url ? (
-                            <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
-                        ) : (
-                             s.category?.emoji || '📅'
-                        )}
+                        {s.category?.emoji || (s.name ? s.name.charAt(0).toUpperCase() : '📅')}
                     </div>
                     <div className="flex flex-col">
                         <span className="font-bold text-zinc-900 dark:text-zinc-100">{s.name}</span>

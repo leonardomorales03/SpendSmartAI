@@ -8,6 +8,18 @@ type AiTransaction = {
     description?: string;
     emoji?: string;
 };
+
+type AiTransactionItem = {
+    name?: string;
+    quantity?: number;
+    unit_price?: number;
+    total_amount?: number;
+    category?: string;
+};
+
+type AiTransactionWithItems = AiTransaction & {
+    items?: AiTransactionItem[];
+};
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { groq, GROQ_MODELS } from '@/lib/groq'
@@ -76,14 +88,17 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
         console.log('--- TEXTO EXTRAÍDO DE PDF (pdf2json) ---');
         console.log(text.substring(0, 200) + '...'); // Log truncado para no ensuciar
 
-        return extractTransactionDetails(text);
+        return extractTransactionDetails(text, { autoSaveItems: true });
     } catch (error) {
         console.error('Error al procesar PDF:', error);
         throw new Error('No se pudo procesar el PDF');
     }
 }
 
-export async function extractTransactionDetails(text: string): Promise<Transaction[] | AIAnswer> {
+export async function extractTransactionDetails(
+    text: string,
+    options?: { autoSaveItems?: boolean }
+): Promise<Transaction[] | AIAnswer> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -179,7 +194,16 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
                                 "amount": number,
                                 "category_id": "string-uuid",
                                 "description": "Limpiar descripción (ej: 'Pizza')",
-                                "emoji": "emoji sugerido"
+                                "emoji": "emoji sugerido",
+                                "items": [
+                                    {
+                                        "name": "Nombre del producto o concepto",
+                                        "quantity": number,
+                                        "unit_price": number,
+                                        "total_amount": number,
+                                        "category": "Etiqueta opcional, ej: 'lácteos'"
+                                    }
+                                ]
                             }
                         ]
                     }`
@@ -196,20 +220,19 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
         const content = completion.choices[0]?.message?.content || '{"transactions": []}';
         console.log('Respuesta AI:', content);
         
-        const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
-        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
+        const aiResult = JSON.parse(content) as { transactions?: AiTransactionWithItems[] };
+        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransactionWithItems) => {
             const category =
                 categories.find((c) => c.id === t.category_id) ||
                 { id: 'unknown', name: 'General', emoji: '📦' };
             const categoryId = t.category_id || category.id;
             
-            // Detect anomalies
             let warning: string | undefined;
             if (user && categoryId) {
                  warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
             }
 
-            return {
+            const transaction: Transaction = {
                 id: crypto.randomUUID(),
                 amount: t.amount || 0,
                 category_id: categoryId,
@@ -218,7 +241,13 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
                 warning
-            } as Transaction;
+            };
+
+            if (options?.autoSaveItems && user) {
+                await saveTransaction(transaction, t.items);
+            }
+
+            return transaction;
         }));
 
         return transactions;
@@ -228,7 +257,7 @@ export async function extractTransactionDetails(text: string): Promise<Transacti
     }
 }
 
-export async function saveTransaction(transaction: Transaction) {
+export async function saveTransaction(transaction: Transaction, items?: AiTransactionItem[]) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -236,7 +265,7 @@ export async function saveTransaction(transaction: Transaction) {
         return { success: false, error: 'Usuario no autenticado' };
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('transactions')
         .insert([{
             amount: transaction.amount,
@@ -244,11 +273,39 @@ export async function saveTransaction(transaction: Transaction) {
             description: transaction.description,
             date: transaction.date,
             user_id: user.id
-        }]);
+        }])
+        .select('id')
+        .single();
 
-    if (error) {
+    if (error || !data) {
         console.error('Error saving to Supabase:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: error?.message || 'Error guardando transacción' };
+    }
+
+    const transactionId = data.id as string;
+
+    if (items && items.length > 0) {
+        const validItems = items
+            .filter((i) => i.name && (i.total_amount || i.unit_price))
+            .map((i) => ({
+                user_id: user.id,
+                transaction_id: transactionId,
+                name: i.name as string,
+                quantity: i.quantity ?? 1,
+                unit_price: i.unit_price ?? (i.total_amount ?? 0),
+                total_amount: i.total_amount ?? (i.unit_price ?? 0),
+                category: i.category ?? null
+            }));
+
+        if (validItems.length > 0) {
+            const { error: itemsError } = await supabase
+                .from('transaction_items')
+                .insert(validItems);
+
+            if (itemsError) {
+                console.error('Error saving transaction items:', itemsError);
+            }
+        }
     }
 
     // --- GAMIFICATION HOOKS ---
@@ -336,7 +393,7 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                         Contexto: Colombia. 
                         Categorías disponibles (USA LOS IDs): [${categoriesList}].
                         
-                        IMPORTANTE: Si el recibo tiene múltiples ítems claros que deben registrarse por separado, devuélvelos como una lista.
+                        IMPORTANTE: Si el recibo tiene múltiples ítems claros que deben registrarse por separado, devuélvelos como una lista dentro de cada transacción, en el campo "items".
                         
                         Responde ÚNICAMENTE con este JSON:
                         {
@@ -345,7 +402,16 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                                     "amount": number,
                                     "category_id": "string-uuid",
                                     "description": "Limpiar descripción (ej: 'Pizza')",
-                                    "emoji": "emoji sugerido"
+                                    "emoji": "emoji sugerido",
+                                    "items": [
+                                        {
+                                            "name": "Nombre del producto o concepto",
+                                            "quantity": number,
+                                            "unit_price": number,
+                                            "total_amount": number,
+                                            "category": "Etiqueta opcional, ej: 'lácteos'"
+                                        }
+                                    ]
                                 }
                             ]
                         }`
@@ -364,20 +430,19 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
         });
 
         const content = response.choices[0]?.message?.content || '{"transactions": []}';
-        const aiResult = JSON.parse(content) as { transactions?: AiTransaction[] };
-        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransaction) => {
+        const aiResult = JSON.parse(content) as { transactions?: AiTransactionWithItems[] };
+        const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransactionWithItems) => {
             const category =
                 categories.find((c) => c.id === t.category_id) ||
                 { id: 'unknown', name: 'General', emoji: '📦' };
             const categoryId = t.category_id || category.id;
             
-            // Detect anomalies
             let warning: string | undefined;
             if (user && categoryId) {
                 warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
             }
 
-            return {
+            const transaction: Transaction = {
                 id: crypto.randomUUID(),
                 amount: t.amount || 0,
                 category_id: categoryId,
@@ -386,7 +451,13 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
                 warning
-            } as Transaction;
+            };
+
+            if (user) {
+                await saveTransaction(transaction, t.items);
+            }
+
+            return transaction;
         }));
 
         return transactions;

@@ -7,6 +7,7 @@ import { getUserProgress } from "@/actions/gamification";
 import { getSubscriptions } from "@/actions/subscriptions";
 import { getSavingGoals } from "@/actions/saving-goals";
 import { redirect } from "next/navigation";
+import { getDebts } from "@/actions/debts";
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,7 @@ export default async function Home() {
   const userProgress = await getUserProgress();
   const subscriptions = await getSubscriptions();
   const savingGoals: SavingGoal[] = await getSavingGoals();
+  const { data: debts } = await getDebts();
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
@@ -61,6 +63,7 @@ export default async function Home() {
         userProgress={userProgress}
         subscriptions={subscriptions}
         savingGoals={savingGoals}
+        initialDebts={debts || []}
       />
     </main>
   );
