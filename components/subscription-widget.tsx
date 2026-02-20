@@ -11,19 +11,19 @@ interface SubscriptionWidgetProps {
 
 export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetProps) {
     const { formatCurrency } = useSettings()
-    
+
     if (!subscriptions || subscriptions.length === 0) {
         return (
-             <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
-                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 dark:text-indigo-400">
+            <div className="bg-white dark:bg-zinc-950 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm text-center">
+                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/20 rounded-full flex items-center justify-center mx-auto mb-3 text-indigo-600 dark:text-indigo-400">
                     <Calendar className="w-6 h-6" />
-                 </div>
-                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Suscripciones</h3>
-                 <p className="text-sm text-zinc-500 mb-4">No tienes gastos recurrentes.</p>
-                 <Link href="/subscriptions" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                </div>
+                <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-1">Suscripciones</h3>
+                <p className="text-sm text-zinc-500 mb-4">No tienes gastos recurrentes.</p>
+                <Link href="/subscriptions" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
                     Agregar Suscripción
-                 </Link>
-             </div>
+                </Link>
+            </div>
         )
     }
 
@@ -34,11 +34,11 @@ export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetPro
     const upcoming = activeSubs.sort((a, b) => {
         const diffA = a.billing_day - today
         const diffB = b.billing_day - today
-        
+
         // If passed this month, move to next (add 30 days roughly)
         const daysA = diffA >= 0 ? diffA : diffA + 30
         const daysB = diffB >= 0 ? diffB : diffB + 30
-        
+
         return daysA - daysB
     }).slice(0, 3)
 
@@ -46,20 +46,20 @@ export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetPro
         // Simple logic: if billing day >= today, count it
         // Note: Ideally we should check if it was already paid this month using last_payment_date
         // But for widget summary, simplified view is okay for now, or we can improve it.
-        
+
         // Improved logic with last_payment_date check
         if (s.last_payment_date) {
-             const lastPaid = new Date(s.last_payment_date)
-             const now = new Date()
-             if (lastPaid.getMonth() === now.getMonth() && lastPaid.getFullYear() === now.getFullYear()) {
-                 return acc // Already paid this month
-             }
+            const lastPaid = new Date(s.last_payment_date)
+            const now = new Date()
+            if (lastPaid.getMonth() === now.getMonth() && lastPaid.getFullYear() === now.getFullYear()) {
+                return acc // Already paid this month
+            }
         }
-        
+
         // If not paid this month, check if billing day is upcoming or past due
         // Actually "Remaining to pay" usually implies what is left to be paid in current month
         if (s.billing_day >= today) return acc + s.amount
-        
+
         return acc
     }, 0)
 
@@ -88,9 +88,24 @@ export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetPro
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-white/10 flex items-center justify-center">
                                         {sub.logo_url ? (
-                                            <img src={sub.logo_url} alt={sub.name} className="w-full h-full object-cover" />
+                                            <>
+                                                <img
+                                                    src={sub.logo_url}
+                                                    alt={sub.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.currentTarget.style.display = 'none';
+                                                        const nextSibling = e.currentTarget.nextElementSibling as HTMLElement;
+                                                        if (nextSibling) {
+                                                            nextSibling.classList.remove('hidden');
+                                                            nextSibling.classList.add('flex');
+                                                        }
+                                                    }}
+                                                />
+                                                <span className="text-xs hidden items-center justify-center w-full h-full">{sub.category?.emoji || '📅'}</span>
+                                            </>
                                         ) : (
-                                            <span className="text-xs">{sub.category?.emoji || '📅'}</span>
+                                            <span className="text-xs flex items-center justify-center w-full h-full">{sub.category?.emoji || '📅'}</span>
                                         )}
                                     </div>
                                     <div className="flex flex-col">

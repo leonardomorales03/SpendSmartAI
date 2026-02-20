@@ -65,10 +65,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     for (const t_ of result) {
                         await saveTransaction(t_);
                     }
-                    
+
                     const warnings = result.filter(t => t.warning);
                     if (warnings.length > 0) {
-                         toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
+                        toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
                     }
 
                     toast.success(`${result.length} ${t('magicInput.expenses_saved')}`);
@@ -125,7 +125,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
 
                     const warnings = result.filter(t => t.warning);
                     if (warnings.length > 0) {
-                            toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
+                        toast.warning(`${t('magicInput.anomaly_detected')}: ${warnings[0].warning}`, { duration: 6000 });
                     }
 
                     toast.success(`${result.length} ${t('magicInput.expenses_registered')}`);
@@ -136,10 +136,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     // It's a single transaction (fallback)
                     const t_ = result as Transaction;
                     const saveResult = await saveTransaction(t_);
-                    
+
                     if (saveResult.success) {
                         toast.success(t('magicInput.expense_registered'));
-                        
+
                         // Check for unlocked achievements
                         // @ts-ignore
                         if (saveResult.unlockedAchievements && saveResult.unlockedAchievements.length > 0) {
@@ -158,7 +158,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                                     </div>
                                 ), { duration: 5000 });
                             });
-                            
+
                             confetti({
                                 particleCount: 100,
                                 spread: 70,
@@ -166,7 +166,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                             });
                         }
                     } else {
-                         toast.error('Error al guardar: ' + saveResult.error);
+                        toast.error('Error al guardar: ' + saveResult.error);
                     }
 
                     if (t_.warning) {
@@ -299,7 +299,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
         <div className="w-full max-w-2xl mx-auto space-y-4">
             <form onSubmit={handleSubmit} className="relative group">
                 <div className="relative flex items-end bg-card/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10 focus-within:border-white/20">
-                    
+
                     <div className={cn(
                         "absolute top-2 right-2 z-20 transition-all duration-300",
                         hasContent ? "opacity-100 scale-100" : "opacity-0 scale-0 pointer-events-none"
@@ -309,8 +309,8 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                             onClick={handleClear}
                             className={cn(
                                 "p-1.5 rounded-full transition-all duration-200 flex items-center gap-1 shadow-sm backdrop-blur-md",
-                                showClearConfirm 
-                                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 pr-3 border border-red-500/20" 
+                                showClearConfirm
+                                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 pr-3 border border-red-500/20"
                                     : "bg-zinc-800/40 text-zinc-400 hover:bg-zinc-700/60 hover:text-white border border-white/5"
                             )}
                         >
@@ -325,7 +325,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-1 pl-3 pb-3 h-[60px] transition-all duration-300"> 
+                    <div className="flex items-center gap-1 pl-3 pb-3 h-[60px] transition-all duration-300">
                         {isRecording ? (
                             <button
                                 type="button"
@@ -366,7 +366,7 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                                 <Camera className="w-6 h-6" />
                             </button>
                         </div>
-                        
+
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -395,10 +395,10 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         placeholder={isRecording ? t('magicInput.listening') : (isQuestion ? t('magicInput.what_do_you_want_to_know') : t('magicInput.what_did_you_spend_on'))}
                         rows={1}
                         className={cn(
-                            "w-full bg-transparent text-lg text-foreground placeholder:text-muted-foreground/50 outline-none resize-none min-h-[60px] max-h-[200px] overflow-y-auto transition-all duration-300",
-                            hasContent ? "pt-10 pb-4 pl-4 pr-4" : "py-4 pl-2 pr-14"
+                            "w-full bg-transparent text-base md:text-lg leading-tight text-foreground placeholder:text-muted-foreground/50 outline-none resize-none min-h-[60px] max-h-[200px] overflow-y-auto transition-all duration-300",
+                            hasContent ? "pt-10 pb-4 pl-4 pr-4" : "py-4 pl-3 pr-14"
                         )}
-                        style={{ lineHeight: '1.5' }}
+                        style={{ lineHeight: '1.25' }}
                     />
 
                     <div className="absolute right-2 bottom-2 z-10">
@@ -407,8 +407,8 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                             disabled={!input.trim() || isPending || isRecording}
                             className={cn(
                                 "p-3 rounded-2xl transition-all duration-300 flex items-center justify-center",
-                                (input.trim() && !isRecording) 
-                                    ? "bg-white text-black shadow-lg hover:scale-105 active:scale-95" 
+                                (input.trim() && !isRecording)
+                                    ? "bg-white text-black shadow-lg hover:scale-105 active:scale-95"
                                     : "bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed"
                             )}
                         >
