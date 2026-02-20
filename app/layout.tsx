@@ -20,6 +20,8 @@ export const metadata: Metadata = {
   description: "Tu copiloto financiero inteligente",
 };
 
+import { Navigation } from "@/components/navigation";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -32,11 +34,14 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <SettingsProvider 
+        <SettingsProvider
           initialSettings={data?.settings || null}
           initialProfile={data?.profile || null}
         >
-          {children}
+          <Navigation />
+          <div className="pt-16 md:pt-16 pb-20 md:pb-0">
+            {children}
+          </div>
         </SettingsProvider>
         <Toaster />
       </body>

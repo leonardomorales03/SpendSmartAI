@@ -16,7 +16,7 @@ const formSchema = z.object({
     message: "Por favor ingresa un email válido.",
   }),
   interest: z.enum(["personal", "business", "enterprise"], {
-    required_error: "Por favor selecciona un tipo de uso.",
+    message: "Por favor selecciona un tipo de uso.",
   }),
 })
 
@@ -153,7 +153,7 @@ export function LeadForm() {
             </>
           )}
         </button>
-        
+
         <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
           No compartiremos tus datos. Puedes darte de baja en cualquier momento.
         </p>
