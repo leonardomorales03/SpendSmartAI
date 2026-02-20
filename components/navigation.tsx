@@ -19,24 +19,6 @@ import { useSettings } from '@/components/providers/settings-provider';
 export function Navigation({ email }: { email?: string }) {
     const { t, profile } = useSettings();
     const pathname = usePathname();
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-    // Close mobile menu on route change
-    useEffect(() => {
-        setIsMobileMenuOpen(false);
-    }, [pathname]);
-
-    // Prevent scrolling when mobile menu is open
-    useEffect(() => {
-        if (isMobileMenuOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [isMobileMenuOpen]);
 
     const navItems = [
         { name: t('nav.history') || 'Historial', href: '/transactions', icon: Home },
@@ -113,9 +95,9 @@ export function Navigation({ email }: { email?: string }) {
                 </div>
             </header>
 
-            {/* --- Mobile Top Bar --- */}
+            {/* --- Mobile Top Bar (Logo & Profile only) --- */}
             <header className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-md border-b border-white/5 md:hidden h-14 flex items-center px-4 justify-between">
-                <Link href="/" className="flex items-center gap-2 active:scale-95 transition-transform" onClick={() => setIsMobileMenuOpen(false)}>
+                <Link href="/" className="flex items-center gap-2 active:scale-95 transition-transform">
                     {profile?.avatarUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -132,98 +114,50 @@ export function Navigation({ email }: { email?: string }) {
                         SpendSmart
                     </span>
                 </Link>
-
-                <button
-                    onClick={() => setIsMobileMenuOpen(true)}
-                    className="p-2 -mr-2 text-zinc-400 hover:text-zinc-100 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-transparent active:bg-white/5"
-                    aria-label="Abrir menú"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
             </header>
 
-            {/* --- Mobile Slide-out Menu --- */}
-            <AnimatePresence>
-                {isMobileMenuOpen && (
-                    <>
-                        {/* Backdrop */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 md:hidden"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                        />
+            {/* --- Mobile Bottom Navigation Bar --- */}
+            <nav className="fixed bottom-0 left-0 right-0 z-40 bg-background/90 backdrop-blur-xl border-t border-white/5 md:hidden pb-safe">
+                <div className="flex items-center justify-around px-2 h-16">
+                    {navItems.map((item) => {
+                        const isActive = pathname === item.href;
+                        const Icon = item.icon;
 
-                        {/* Slide-out Panel */}
-                        <motion.div
-                            initial={{ x: '100%' }}
-                            animate={{ x: 0 }}
-                            exit={{ x: '100%' }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            drag="x"
-                            dragConstraints={{ left: 0, right: 0 }}
-                            dragElastic={{ left: 0, right: 0.5 }}
-                            onDragEnd={(e, { offset, velocity }) => {
-                                const swipeThreshold = 50;
-                                if (offset.x > swipeThreshold || velocity.x > 500) {
-                                    setIsMobileMenuOpen(false);
-                                }
-                            }}
-                            className="fixed top-0 right-0 bottom-0 w-[80vw] max-w-[320px] bg-zinc-950 border-l border-white/5 z-50 shadow-2xl flex flex-col md:hidden"
-                        >
-                            <div className="flex items-center justify-between p-4 border-b border-white/5 h-14">
-                                <span className="font-medium text-zinc-200">Menú</span>
-                                <button
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className="p-2 -mr-2 text-zinc-400 hover:text-white transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-transparent active:bg-white/5"
-                                    aria-label="Cerrar menú"
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`
+                                    flex flex-col items-center justify-center w-full h-full space-y-1 relative transition-colors duration-200
+                                    ${isActive
+                                        ? 'text-white'
+                                        : item.highlight
+                                            ? 'text-emerald-400'
+                                            : 'text-zinc-500 hover:text-zinc-300'
+                                    }
+                                `}
+                            >
+                                <motion.div
+                                    whileTap={{ scale: 0.85 }}
+                                    className="relative flex items-center justify-center"
                                 >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
-                                {navItems.map((item) => {
-                                    const isActive = pathname === item.href;
-                                    const Icon = item.icon;
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            className={`
-                        flex items-center gap-4 px-4 py-3 min-h-[48px] rounded-2xl text-base font-medium transition-all
-                        ${isActive
-                                                    ? 'bg-white/10 text-white'
-                                                    : item.highlight
-                                                        ? 'text-emerald-400 hover:bg-emerald-400/5'
-                                                        : 'text-zinc-400 hover:bg-white/5 hover:text-zinc-200'
-                                                }
-                      `}
-                                        >
-                                            <Icon className={`w-5 h-5 ${item.highlight && !isActive ? 'text-emerald-500' : ''}`} />
-                                            {item.name}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="p-4 border-t border-white/5 mt-auto">
-                                <form action="/auth/signout" method="post">
-                                    <button
-                                        type="submit"
-                                        className="flex w-full items-center gap-4 px-4 py-3 min-h-[48px] rounded-2xl text-base font-medium text-red-400 hover:bg-red-400/10 active:bg-red-400/20 transition-all"
-                                    >
-                                        <LogOut className="w-5 h-5" />
-                                        <span>{t('nav.logout') || 'Cerrar Sesión'}</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
+                                    <Icon className={`w-5 h-5 ${item.highlight && !isActive ? 'text-emerald-500' : ''}`} />
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="mobileNavIndicator"
+                                            className="absolute -inset-2 bg-white/10 rounded-xl -z-10"
+                                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                        />
+                                    )}
+                                </motion.div>
+                                <span className={`text-[10px] font-medium leading-none ${isActive ? 'font-semibold' : ''}`}>
+                                    {item.name.replace(' ✨', '')}
+                                </span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            </nav>
         </>
     );
 }
