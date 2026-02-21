@@ -44,7 +44,40 @@ export function TransactionFilters() {
           }}
         />
       </div>
-      
+
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Desde:</label>
+          <input
+            type="datetime-local"
+            className="px-2 py-1.5 bg-background border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={searchParams.get('startDate') || ''}
+            onChange={(e) => router.push(`?${createQueryString('startDate', e.target.value)}`)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Hasta:</label>
+          <input
+            type="datetime-local"
+            className="px-2 py-1.5 bg-background border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+            value={searchParams.get('endDate') || ''}
+            onChange={(e) => router.push(`?${createQueryString('endDate', e.target.value)}`)}
+          />
+        </div>
+
+        {(searchParams.get('search') || searchParams.get('startDate') || searchParams.get('endDate')) && (
+          <button
+            onClick={() => {
+              setSearchValue('')
+              router.push(window.location.pathname)
+            }}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
       {/* 
         TODO: Add Category Filter dropdown here 
         Need to fetch categories first, for now keeping it simple with search

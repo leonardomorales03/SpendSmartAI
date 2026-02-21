@@ -26,6 +26,7 @@ import { groq, GROQ_MODELS } from '@/lib/groq'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { detectAnomaly } from './anomaly'
 import { checkDailyStreak, checkAchievements, addXp } from './gamification'
+import { addDebtPayment, getDebts, syncDebtPayment, deleteDebtPaymentByTransaction } from './debts'
 
 export async function extractFromPdf(formData: FormData): Promise<Transaction[] | AIAnswer> {
     const file = formData.get('file') as File;
@@ -33,7 +34,7 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    
+
     const rate = await checkRateLimit({
         key: 'ai_pdf_extract',
         maxRequests: 50,
@@ -67,10 +68,10 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
         const PdfCtor =
             (pdf2json as Pdf2JsonModule as { default?: new (...args: unknown[]) => PdfParserInstance })
                 .default ?? (pdf2json as unknown as new (...args: unknown[]) => PdfParserInstance);
-        
+
         const text = await new Promise<string>((resolve, reject) => {
             const pdfParser = new PdfCtor(null, 1);
-            
+
             pdfParser.on("pdfParser_dataError", (errData) => {
                 const error =
                     errData.parserError instanceof Error
@@ -118,7 +119,7 @@ export async function extractTransactionDetails(
     // 1. DETECT IF IT IS A QUESTION (ASK MY MONEY)
     if (text.startsWith('?')) {
         if (!user) {
-             return {
+            return {
                 type: 'answer',
                 text: "Debes iniciar sesión para consultar tus datos.",
             } as AIAnswer;
@@ -176,6 +177,9 @@ export async function extractTransactionDetails(
         const categories = (dbCategories || []) as Category[];
         const categoriesList = categories.map((c) => `${c.name} (ID: ${c.id})`).join(', ');
 
+        const { data: debts } = await getDebts();
+        const debtsList = (debts || []).map(d => `${d.name} (ID: ${d.id}, Saldo: ${d.remaining_amount})`).join(', ');
+
         const completion = await groq.chat.completions.create({
             messages: [
                 {
@@ -185,6 +189,9 @@ export async function extractTransactionDetails(
                     Si el usuario dice 'k' o 'mil', multiplícalo (ej: 50k = 50000). 
                     Categorías disponibles (USA LOS IDs PROPORCIONADOS): [${categoriesList}].
                     
+                    DEUDAS DISPONIBLES: [${debtsList}].
+                    Si el usuario menciona un "abono", "pago de tarjeta", "pago de cuota" o similar, intenta identificar a qué DEUDA se refiere.
+                    
                     IMPORTANTE: Si el usuario menciona múltiples gastos (ej: "4000 en comida y 10000 en gasolina"), extrae CADA UNO por separado.
                     
                     Responde ÚNICAMENTE con este JSON:
@@ -193,7 +200,8 @@ export async function extractTransactionDetails(
                             {
                                 "amount": number,
                                 "category_id": "string-uuid",
-                                "description": "Limpiar descripción (ej: 'Pizza')",
+                                "debt_id": "string-uuid (SOLO SI ES UN ABONO A DEUDA)",
+                                "description": "Limpiar descripción (ej: 'Pizza' o 'Abono Tarjeta NU')",
                                 "emoji": "emoji sugerido",
                                 "items": [
                                     {
@@ -219,17 +227,17 @@ export async function extractTransactionDetails(
 
         const content = completion.choices[0]?.message?.content || '{"transactions": []}';
         console.log('Respuesta AI:', content);
-        
+
         const aiResult = JSON.parse(content) as { transactions?: AiTransactionWithItems[] };
         const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransactionWithItems) => {
             const category =
                 categories.find((c) => c.id === t.category_id) ||
                 { id: 'unknown', name: 'General', emoji: '📦' };
             const categoryId = t.category_id || category.id;
-            
+
             let warning: string | undefined;
             if (user && categoryId) {
-                 warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
+                warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
             }
 
             const transaction: Transaction = {
@@ -240,7 +248,8 @@ export async function extractTransactionDetails(
                 description: t.description || text,
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
-                warning
+                warning,
+                debt_id: (t as any).debt_id
             };
 
             if (options?.autoSaveItems && user) {
@@ -263,6 +272,23 @@ export async function saveTransaction(transaction: Transaction, items?: AiTransa
 
     if (!user) {
         return { success: false, error: 'Usuario no autenticado' };
+    }
+
+    // IF IT'S A DEBT PAYMENT, USE addDebtPayment instead
+    if (transaction.debt_id) {
+        const debtResult = await addDebtPayment({
+            debt_id: transaction.debt_id,
+            amount: transaction.amount,
+            date: transaction.date,
+            note: transaction.description
+        });
+
+        if (debtResult.success) {
+            revalidatePath('/');
+            return { success: true };
+        } else {
+            return { success: false, error: debtResult.error || 'Error al registrar abono a deuda' };
+        }
     }
 
     const { data, error } = await supabase
@@ -312,13 +338,13 @@ export async function saveTransaction(transaction: Transaction, items?: AiTransa
     try {
         // 1. Check Streak
         await checkDailyStreak(user.id);
-        
+
         // 2. Add XP for transaction (10 XP)
         await addXp(10);
 
         // 3. Check Achievements
         const unlocked = await checkAchievements(transaction);
-        
+
         revalidatePath('/');
         return { success: true, unlockedAchievements: unlocked };
     } catch (gamificationError) {
@@ -436,7 +462,7 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                 categories.find((c) => c.id === t.category_id) ||
                 { id: 'unknown', name: 'General', emoji: '📦' };
             const categoryId = t.category_id || category.id;
-            
+
             let warning: string | undefined;
             if (user && categoryId) {
                 warning = await detectAnomaly(user.id, categoryId, t.amount || 0);
@@ -468,53 +494,62 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
 }
 
 export async function getTransactions(
-  page: number = 1,
-  pageSize: number = 10,
-  filters?: {
-    category_id?: string;
-    startDate?: string;
-    endDate?: string;
-    search?: string;
-  }
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: {
+        category_id?: string;
+        startDate?: string;
+        endDate?: string;
+        search?: string;
+    }
 ) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) return { data: [], count: 0, error: 'Usuario no autenticado' };
+    if (!user) return { data: [], count: 0, error: 'Usuario no autenticado' };
 
-  let query = supabase
-    .from('transactions')
-    .select('*, category:categories(name, emoji)', { count: 'exact' })
-    .eq('user_id', user.id)
-    .order('date', { ascending: false });
+    let query = supabase
+        .from('transactions')
+        .select('*, category:categories(name, emoji), debt_payment:debt_payments(debt_id)', { count: 'exact' })
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
 
-  if (filters?.category_id && filters.category_id !== 'all') {
-    query = query.eq('category_id', filters.category_id);
-  }
+    if (filters?.category_id && filters.category_id !== 'all') {
+        query = query.eq('category_id', filters.category_id);
+    }
 
-  if (filters?.startDate) {
-    query = query.gte('date', filters.startDate);
-  }
+    if (filters?.startDate) {
+        query = query.gte('date', filters.startDate);
+    }
 
-  if (filters?.endDate) {
-    query = query.lte('date', filters.endDate);
-  }
-  
-  if (filters?.search) {
-      query = query.ilike('description', `%${filters.search}%`);
-  }
+    if (filters?.endDate) {
+        query = query.lte('date', filters.endDate);
+    }
 
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
+    if (filters?.search) {
+        query = query.ilike('description', `%${filters.search}%`);
+    }
 
-  const { data, count, error } = await query.range(from, to);
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
 
-  if (error) {
-    console.error('Error fetching transactions:', error);
-    return { data: [], count: 0, error: error.message };
-  }
+    // After fetching:
+    const { data: rawData, count, error } = await query.range(from, to);
 
-  return { data, count };
+    if (error) {
+        console.error('Error fetching transactions:', error);
+        return { data: [], count: 0, error: error.message };
+    }
+
+    const data = (rawData as any[]).map(t => ({
+        ...t,
+        debt_id: Array.isArray(t.debt_payment)
+            ? t.debt_payment[0]?.debt_id
+            : t.debt_payment?.debt_id
+    }));
+
+    return { data, count };
 }
 
 export async function updateTransaction(id: string, updates: Partial<Transaction>) {
@@ -538,7 +573,12 @@ export async function updateTransaction(id: string, updates: Partial<Transaction
         console.error('Error updating transaction:', error);
         return { success: false, error: error.message };
     }
-    
+
+    // Sync with debt if necessary
+    if (updates.amount !== undefined || updates.debt_id !== undefined) {
+        await syncDebtPayment(id, updates.amount || 0, updates.debt_id);
+    }
+
     revalidatePath('/');
     revalidatePath('/transactions');
     return { success: true };
@@ -560,7 +600,10 @@ export async function deleteTransaction(id: string) {
         console.error('Error deleting transaction:', error);
         return { success: false, error: error.message };
     }
-    
+
+    // Unlink and revert debt if necessary
+    await deleteDebtPaymentByTransaction(id);
+
     revalidatePath('/');
     revalidatePath('/transactions');
     return { success: true };

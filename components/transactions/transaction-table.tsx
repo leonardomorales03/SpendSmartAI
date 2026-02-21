@@ -151,10 +151,12 @@ export function TransactionTable({
                       {t.category?.name || 'General'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground">
-                    {new Date(t.date).toLocaleDateString('es-CO', {
+                  <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                    {new Date(t.date).toLocaleString('es-CO', {
                       day: 'numeric',
                       month: 'short',
+                      hour: '2-digit',
+                      minute: '2-digit'
                     })}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold">
@@ -193,7 +195,12 @@ export function TransactionTable({
                   <div className="overflow-hidden">
                     <p className="font-semibold text-sm truncate">{t.description}</p>
                     <p className="text-xs text-zinc-500">
-                      {new Date(t.date).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}
+                      {new Date(t.date).toLocaleString('es-CO', {
+                        day: '2-digit',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </p>
                   </div>
                 </div>

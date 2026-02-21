@@ -36,6 +36,19 @@ Dado el alto CAC en FinTech ($15-$30 USD), la estrategia inicial es 100% orgáni
 *   **ASO de Nicho:** Keywords como "AI budget", "Receipt scanner", "Voice expense".
 *   **Micro-Influencers:** Intercambio de licencias Lifetime por menciones.
 
+### 5. Análisis Realista: Lanzamiento Web-First (Colombia)
+Para el MVP, se ha decidido priorizar el lanzamiento como **Web App Responsive / PWA** en lugar de aplicaciones nativas, para validar el mercado con menor costo y mayores márgenes.
+
+*   **Plan Mensual Único:** $14,900 COP.
+*   **Escenario Realista (Año 1):** 300 a 800 usuarios activos pagando (Media: 500 MAU).
+*   **Ingresos Proyectados (Media):** 
+    *   **Bruto:** ~$7,450,000 COP / mes.
+    *   **Neto Estimado (libres):** ~$5,000,000 COP / mes (tras comisiones de pasarela y APIs de IA).
+*   **Ventaja Estratégica:** 
+    *   Comisiones de pago (Stripe/Bold) de ~5% vs. 30% de Apple/Google.
+    *   Actualizaciones instantáneas sin aprobación de tiendas.
+    *   Validación de la retención del hábito de "registro por voz" antes de invertir en desarrollo nativo.
+
 ---
 
 ## �� Fase 1: Roadmap a Producción (Infraestructura Real)

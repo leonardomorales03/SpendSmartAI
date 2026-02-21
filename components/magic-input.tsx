@@ -298,122 +298,119 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
     return (
         <div className="w-full max-w-2xl mx-auto space-y-4">
             <form onSubmit={handleSubmit} className="relative group">
-                <div className="relative flex items-end bg-card/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10 focus-within:border-white/20">
+                <div className="flex flex-col bg-card/40 backdrop-blur-xl border border-white/5 rounded-3xl shadow-2xl transition-all duration-300 focus-within:ring-1 focus-within:ring-white/10 focus-within:border-white/20 overflow-hidden">
 
-                    <div className={cn(
-                        "absolute top-2 right-2 z-20 transition-all duration-300",
-                        hasContent ? "opacity-100 scale-100" : "opacity-0 scale-0 pointer-events-none"
-                    )}>
-                        <button
-                            type="button"
-                            onClick={handleClear}
+                    <div className="relative w-full">
+                        <textarea
+                            ref={textareaRef}
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            disabled={isPending || isRecording}
+                            placeholder={isRecording ? t('magicInput.listening') : (isQuestion ? t('magicInput.what_do_you_want_to_know') : t('magicInput.what_did_you_spend_on'))}
+                            rows={1}
                             className={cn(
-                                "p-1.5 rounded-full transition-all duration-200 flex items-center gap-1 shadow-sm backdrop-blur-md",
-                                showClearConfirm
-                                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 pr-3 border border-red-500/20"
-                                    : "bg-zinc-800/40 text-zinc-400 hover:bg-zinc-700/60 hover:text-white border border-white/5"
+                                "w-full bg-transparent text-base md:text-lg leading-tight text-foreground placeholder:text-muted-foreground/50 outline-none resize-none min-h-[60px] max-h-[200px] overflow-y-auto transition-all duration-300",
+                                hasContent ? "py-4 pl-4 pr-12" : "py-4 pl-4 pr-4"
                             )}
-                        >
-                            {showClearConfirm ? (
-                                <>
-                                    <Trash2 className="w-3 h-3" />
-                                    <span className="text-xs font-medium">{t('magicInput.delete_confirm')}</span>
-                                </>
-                            ) : (
-                                <X className="w-3.5 h-3.5" />
-                            )}
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 pl-3 pb-3 h-[60px] transition-all duration-300">
-                        {isRecording ? (
-                            <button
-                                type="button"
-                                onClick={handleToggleRecording}
-                                className="text-red-500 animate-pulse cursor-pointer p-2 hover:bg-white/5 rounded-full transition-colors relative"
-                            >
-                                <StopCircle className="w-6 h-6" />
-                                {silenceWarning !== null && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm animate-bounce">
-                                        {silenceWarning}
-                                    </span>
-                                )}
-                            </button>
-                        ) : (
-                            <div className={cn(
-                                "overflow-hidden transition-all duration-300 flex items-center",
-                                hasContent ? "w-0 opacity-0 scale-0" : "w-10 opacity-100 scale-100"
-                            )}>
-                                <button
-                                    type="button"
-                                    onClick={handleToggleRecording}
-                                    className="text-zinc-400 hover:text-indigo-400 transition-all duration-300 cursor-pointer p-2 hover:bg-white/5 rounded-full"
-                                >
-                                    <Mic className="w-6 h-6" />
-                                </button>
-                            </div>
-                        )}
+                            style={{ lineHeight: '1.25' }}
+                        />
 
                         <div className={cn(
-                            "overflow-hidden transition-all duration-300 flex items-center",
-                            showCamera ? "w-10 opacity-100 scale-100" : "w-0 opacity-0 scale-0"
+                            "absolute top-3 right-3 z-20 transition-all duration-300",
+                            hasContent ? "opacity-100 scale-100" : "opacity-0 scale-0 pointer-events-none"
                         )}>
                             <button
                                 type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="text-zinc-400 hover:text-indigo-400 transition-colors cursor-pointer p-2 hover:bg-white/5 rounded-full whitespace-nowrap"
+                                onClick={handleClear}
+                                className={cn(
+                                    "p-1.5 rounded-full transition-all duration-200 flex items-center gap-1 shadow-sm backdrop-blur-md",
+                                    showClearConfirm
+                                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 pr-3 border border-red-500/20"
+                                        : "bg-zinc-800/40 text-zinc-400 hover:bg-zinc-700/60 hover:text-white border border-white/5"
+                                )}
                             >
-                                <Camera className="w-6 h-6" />
+                                {showClearConfirm ? (
+                                    <>
+                                        <Trash2 className="w-3 h-3" />
+                                        <span className="text-xs font-medium">{t('magicInput.delete_confirm')}</span>
+                                    </>
+                                ) : (
+                                    <X className="w-3.5 h-3.5" />
+                                )}
                             </button>
-                        </div>
-
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/*,application/pdf"
-                            onChange={handleFileChange}
-                        />
-
-                        <div className="h-6 w-[1px] bg-white/10 mx-1" />
-
-                        <div className="p-2">
-                            {isQuestion ? (
-                                <MessageSquare className={cn("w-5 h-5 text-indigo-500 transition-all", isPending ? "animate-bounce" : "")} />
-                            ) : (
-                                <Sparkles className={cn("w-5 h-5 text-indigo-500 transition-all", isPending ? "animate-pulse" : "")} />
-                            )}
                         </div>
                     </div>
 
-                    <textarea
-                        ref={textareaRef}
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        disabled={isPending || isRecording}
-                        placeholder={isRecording ? t('magicInput.listening') : (isQuestion ? t('magicInput.what_do_you_want_to_know') : t('magicInput.what_did_you_spend_on'))}
-                        rows={1}
-                        className={cn(
-                            "w-full bg-transparent text-base md:text-lg leading-tight text-foreground placeholder:text-muted-foreground/50 outline-none resize-none min-h-[60px] max-h-[200px] overflow-y-auto transition-all duration-300",
-                            hasContent ? "pt-10 pb-4 pl-4 pr-4" : "py-4 pl-3 pr-14"
-                        )}
-                        style={{ lineHeight: '1.25' }}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*,application/pdf"
+                        onChange={handleFileChange}
                     />
 
-                    <div className="absolute right-2 bottom-2 z-10">
-                        <button
-                            type="submit"
-                            disabled={!input.trim() || isPending || isRecording}
-                            className={cn(
-                                "p-3 rounded-2xl transition-all duration-300 flex items-center justify-center",
-                                (input.trim() && !isRecording)
-                                    ? "bg-white text-black shadow-lg hover:scale-105 active:scale-95"
-                                    : "bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed"
+                    <div className="flex items-center justify-between px-3 pb-3">
+                        <div className="flex items-center gap-1">
+                            {isRecording ? (
+                                <button
+                                    type="button"
+                                    onClick={handleToggleRecording}
+                                    className="text-red-500 animate-pulse cursor-pointer p-2 hover:bg-white/5 rounded-full transition-colors relative"
+                                >
+                                    <StopCircle className="w-6 h-6" />
+                                    {silenceWarning !== null && (
+                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm animate-bounce">
+                                            {silenceWarning}
+                                        </span>
+                                    )}
+                                </button>
+                            ) : (
+                                <div className={cn(
+                                    "flex items-center transition-all duration-300",
+                                    hasContent ? "w-0 opacity-0 overflow-hidden" : "w-auto opacity-100"
+                                )}>
+                                    <button
+                                        type="button"
+                                        onClick={handleToggleRecording}
+                                        className="text-zinc-400 hover:text-indigo-400 transition-all duration-300 cursor-pointer p-2 hover:bg-white/5 rounded-full"
+                                    >
+                                        <Mic className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="text-zinc-400 hover:text-indigo-400 transition-colors cursor-pointer p-2 hover:bg-white/5 rounded-full whitespace-nowrap"
+                                    >
+                                        <Camera className="w-6 h-6" />
+                                    </button>
+                                    <div className="h-6 w-[1px] bg-white/10 mx-1" />
+                                </div>
                             )}
-                        >
-                            {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
-                        </button>
+
+                            <div className="p-2">
+                                {isQuestion ? (
+                                    <MessageSquare className={cn("w-5 h-5 text-indigo-500 transition-all", isPending ? "animate-bounce" : "")} />
+                                ) : (
+                                    <Sparkles className={cn("w-5 h-5 text-indigo-500 transition-all", isPending ? "animate-pulse" : "")} />
+                                )}
+                            </div>
+                        </div>
+
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={!input.trim() || isPending || isRecording}
+                                className={cn(
+                                    "p-2.5 rounded-xl transition-all duration-300 flex items-center justify-center",
+                                    (input.trim() && !isRecording)
+                                        ? "bg-white text-black shadow-lg hover:scale-105 active:scale-95"
+                                        : "bg-white/5 text-muted-foreground opacity-50 cursor-not-allowed"
+                                )}
+                            >
+                                {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUp className="w-5 h-5" />}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>

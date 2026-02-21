@@ -14,6 +14,7 @@ export type Transaction = {
     date: string; // ISO string
     emoji?: string; // Derived from category or AI
     warning?: string; // Anomaly detection warning
+    debt_id?: string; // Optional link to a debt
 };
 
 export type TransactionDraft = {
