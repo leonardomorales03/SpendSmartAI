@@ -3,7 +3,7 @@
 import { useState, useOptimistic, useTransition, useRef, useEffect } from 'react'
 import { extractTransactionDetails, saveTransaction, transcribeAudio, extractFromImage, extractFromPdf } from '@/actions/transaction'
 import { getCategories } from '@/actions/categories'
-import { Transaction, AIAnswer, Category } from '@/lib/types'
+import { Transaction, AIAnswer, Category, SavingGoal } from '@/lib/types'
 import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trash2, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -11,7 +11,11 @@ import confetti from 'canvas-confetti'
 import { useSettings } from '@/components/providers/settings-provider'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
 
-export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Transaction[]) => void }) {
+export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: { 
+    onTransactionAdded?: (t: Transaction[]) => void, 
+    onRefresh?: () => void,
+    onGoalsChange?: (goals: SavingGoal[]) => void
+}) {
     const { t } = useSettings()
     const [input, setInput] = useState('')
     const [lastRawText, setLastRawText] = useState('')
@@ -86,6 +90,12 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                 } else {
                     const aiAnswer = result as AIAnswer;
                     toast.info(aiAnswer.text);
+                    if (aiAnswer.updatedGoals && onGoalsChange) {
+                        onGoalsChange(aiAnswer.updatedGoals);
+                    }
+                    if (aiAnswer.refreshRequired && onRefresh) {
+                        onRefresh();
+                    }
                 }
             } catch (error) {
                 toast.error(isPdf ? t('magicInput.error_pdf') : t('magicInput.error_file'));

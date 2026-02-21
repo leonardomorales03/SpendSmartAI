@@ -131,7 +131,7 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
     try {
         const rate = await checkRateLimit({
             key: 'ai_financial_chat',
-            maxRequests: 50,
+            maxRequests: 20,
             windowSeconds: 60 * 60,
         })
 

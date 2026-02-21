@@ -39,6 +39,8 @@ export type TransactionDraft = {
 export type AIAnswer = {
     type: 'answer';
     text: string;
+    refreshRequired?: boolean;
+    updatedGoals?: SavingGoal[];
     chartType?: 'bar' | 'pie';
     data?: {
         label: string;

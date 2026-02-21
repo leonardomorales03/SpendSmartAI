@@ -27,6 +27,7 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { detectAnomaly } from './anomaly'
 import { checkDailyStreak, checkAchievements, addXp } from './gamification'
 import { addDebtPayment, getDebts, syncDebtPayment, deleteDebtPaymentByTransaction } from './debts'
+import { getSavingGoals, upsertSavingGoal } from '@/actions/saving-goals'
 
 export async function extractFromPdf(formData: FormData): Promise<Transaction[] | AIAnswer> {
     const file = formData.get('file') as File;
@@ -37,7 +38,7 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
 
     const rate = await checkRateLimit({
         key: 'ai_pdf_extract',
-        maxRequests: 50,
+        maxRequests: 20,
         windowSeconds: 60 * 60,
     })
 
@@ -105,7 +106,7 @@ export async function extractTransactionDetails(
 
     const rate = await checkRateLimit({
         key: 'ai_text_extract',
-        maxRequests: 50,
+        maxRequests: 20,
         windowSeconds: 60 * 60,
     })
 
@@ -180,6 +181,9 @@ export async function extractTransactionDetails(
         const { data: debts } = await getDebts();
         const debtsList = (debts || []).map(d => `${d.name} (ID: ${d.id}, Saldo: ${d.remaining_amount})`).join(', ');
 
+        const savingGoals = await getSavingGoals();
+        const goalsList = savingGoals.map(g => `${g.name} (ID: ${g.id}, Actual: ${g.current_amount})`).join(', ');
+
         const completion = await groq.chat.completions.create({
             messages: [
                 {
@@ -191,6 +195,13 @@ export async function extractTransactionDetails(
                     
                     DEUDAS DISPONIBLES: [${debtsList}].
                     Si el usuario menciona un "abono", "pago de tarjeta", "pago de cuota" o similar, intenta identificar a qué DEUDA se refiere.
+
+                    METAS DE AHORRO DISPONIBLES: [${goalsList}].
+                    Si el usuario menciona "ahorrar X para Y", "meter X a Y", "agregar X al ahorro Y" o similar:
+                    1. Verifica si el nombre "Y" coincide EXACTAMENTE o es MUY SIMILAR a una meta existente.
+                    2. Si coincide, usa el campo "goal_updates".
+                    3. Si NO coincide con ninguna meta de la lista, RESPONDE con una transacción normal (gasto) O, si es claramente una intención de ahorro pero la meta no existe, puedes ignorarlo en "transactions" y responder en texto que la meta no existe (pero el formato JSON no permite texto libre fuera de la estructura, así que mejor asume que es un gasto o ignóralo).
+                    4. PRIORIDAD: Si la meta no existe, NO inventes un ID.
                     
                     IMPORTANTE: Si el usuario menciona múltiples gastos (ej: "4000 en comida y 10000 en gasolina"), extrae CADA UNO por separado.
                     
@@ -213,6 +224,12 @@ export async function extractTransactionDetails(
                                     }
                                 ]
                             }
+                        ],
+                        "goal_updates": [
+                            {
+                                "goal_id": "string-uuid",
+                                "amount_to_add": number
+                            }
                         ]
                     }`
                 },
@@ -228,7 +245,43 @@ export async function extractTransactionDetails(
         const content = completion.choices[0]?.message?.content || '{"transactions": []}';
         console.log('Respuesta AI:', content);
 
-        const aiResult = JSON.parse(content) as { transactions?: AiTransactionWithItems[] };
+        const aiResult = JSON.parse(content) as { 
+            transactions?: AiTransactionWithItems[],
+            goal_updates?: { goal_id: string, amount_to_add: number }[]
+        };
+
+        // 2.1 PROCESS GOAL UPDATES
+        let goalUpdateMessage = '';
+        if (aiResult.goal_updates && aiResult.goal_updates.length > 0) {
+            for (const update of aiResult.goal_updates) {
+                const goal = savingGoals.find(g => g.id === update.goal_id);
+                if (goal) {
+                    const newAmount = (goal.current_amount || 0) + update.amount_to_add;
+                    await upsertSavingGoal({
+                        id: goal.id,
+                        name: goal.name,
+                        target_amount: goal.target_amount,
+                        current_amount: newAmount,
+                        deadline: goal.deadline,
+                        category: goal.category
+                    });
+                    goalUpdateMessage += `Abonado ${update.amount_to_add} a ${goal.name}. `;
+                }
+            }
+        }
+
+        // If only goals were updated and no transactions, return answer
+        if ((!aiResult.transactions || aiResult.transactions.length ===0) && goalUpdateMessage) {
+            // Fetch updated goals to return to UI
+            const updatedGoals = await getSavingGoals();
+            return {
+                type: 'answer',
+                text: `¡Listo! ${goalUpdateMessage}`,
+                refreshRequired: true,
+                updatedGoals
+            } as AIAnswer;
+        }
+
         const transactions = await Promise.all((aiResult.transactions || []).map(async (t: AiTransactionWithItems) => {
             const category =
                 categories.find((c) => c.id === t.category_id) ||
@@ -374,7 +427,7 @@ export async function transcribeAudio(formData: FormData) {
 
     const rate = await checkRateLimit({
         key: 'ai_audio_transcription',
-        maxRequests: 50,
+        maxRequests: 20,
         windowSeconds: 60 * 60,
     })
 
@@ -402,7 +455,7 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
 
     const rate = await checkRateLimit({
         key: 'ai_image_extract',
-        maxRequests: 50,
+        maxRequests: 20,
         windowSeconds: 60 * 60,
     })
 

@@ -55,6 +55,10 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
         router.refresh()
     }
 
+    const handleRefresh = () => {
+        router.refresh()
+    }
+
     // Calculate totals for summary card
     const totalExpenses = transactions.reduce((acc, t) => acc + t.amount, 0)
     const estimatedIncome = budget
@@ -82,7 +86,11 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                 <div className="xl:col-span-8 space-y-6">
 
                     {/* Magic Input - Primary Action */}
-                    <MagicInput onTransactionAdded={handleTransactionAdded} />
+                    <MagicInput 
+                        onTransactionAdded={handleTransactionAdded} 
+                        onRefresh={handleRefresh} 
+                        onGoalsChange={setGoals}
+                    />
 
                     {/* Quick Actions - DESKTOP */}
                     <div className="hidden md:block">
