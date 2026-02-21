@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettings } from '@/components/providers/settings-provider'
 import { cn } from '@/lib/utils'
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Loader2 } from 'lucide-react'
@@ -10,7 +10,7 @@ import { createDebt, addDebtPayment } from '@/actions/debts'
 type DebtType = 'credit_card' | 'loan' | 'personal' | 'other'
 type DebtStatus = 'active' | 'paid' | 'defaulted'
 
-type Debt = {
+export type Debt = {
   id: string
   name: string
   type: DebtType
@@ -28,6 +28,11 @@ interface DebtsSummaryCardProps {
 export function DebtsSummaryCard({ debts }: DebtsSummaryCardProps) {
   const { formatCurrency } = useSettings()
   const [localDebts, setLocalDebts] = useState<Debt[]>(debts || [])
+
+  // Sync with props when refreshed from server (e.g. Magic Input)
+  useEffect(() => {
+    setLocalDebts(debts || [])
+  }, [debts])
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [name, setName] = useState('')
   const [type, setType] = useState<DebtType>('credit_card')

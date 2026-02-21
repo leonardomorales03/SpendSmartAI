@@ -26,7 +26,7 @@ export function FinancialSummaryCard({ income, expenses, budget, savingGoals = [
     const savingsProgress = totalTargetSavings > 0
         ? Math.min((totalCurrentSavings / totalTargetSavings) * 100, 100)
         : 0
-    
+
     // Proyección simple: si estamos a día 15 y gastamos X, proyectamos 2X a fin de mes
     const today = new Date().getDate()
     const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
@@ -35,7 +35,7 @@ export function FinancialSummaryCard({ income, expenses, budget, savingGoals = [
     return (
         <div className="relative overflow-hidden p-6 rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 shadow-sm">
             <div className="flex flex-col gap-6">
-                
+
                 {/* Header: Balance Total */}
                 <div className="flex justify-between items-start">
                     <div>
@@ -97,9 +97,9 @@ export function FinancialSummaryCard({ income, expenses, budget, savingGoals = [
                             {budgetUsedPercent.toFixed(0)}%
                         </span>
                     </div>
-                    
+
                     <div className="h-2 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
-                        <motion.div 
+                        <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${budgetUsedPercent}%` }}
                             className={cn(
@@ -117,38 +117,6 @@ export function FinancialSummaryCard({ income, expenses, budget, savingGoals = [
                     )}
                 </div>
 
-                {savingGoals.length > 0 && (
-                    <div className="mt-2 p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-900/40 border border-dashed border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
-                                    <Target className="w-3 h-3 text-emerald-700 dark:text-emerald-300" />
-                                </div>
-                                <div>
-                                    <p className="text-xs font-semibold text-zinc-800 dark:text-zinc-100">
-                                        Ahorro hacia tus metas
-                                    </p>
-                                    <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                                        {savingGoals.length} metas activas
-                                    </p>
-                                </div>
-                            </div>
-                            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-                                {savingsProgress.toFixed(0)}%
-                            </span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
-                            <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${savingsProgress}%` }}
-                                className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
-                            />
-                        </div>
-                        <p className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400">
-                            {formatCurrency(totalCurrentSavings)} ahorrados de {formatCurrency(totalTargetSavings)} en total.
-                        </p>
-                    </div>
-                )}
 
             </div>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { MagicInput } from '@/components/magic-input'
 import { SpendingChart } from '@/components/spending-chart'
 import { CategoryChart } from '@/components/category-chart'
@@ -18,6 +19,7 @@ import { useSettings } from '@/components/providers/settings-provider'
 
 import { Subscription, SavingGoal } from '@/lib/types'
 import { SavingGoalsCard } from '@/components/saving-goals-card'
+import { Debt, DebtsSummaryCard } from '@/components/debts-summary-card'
 
 interface DashboardProps {
     initialTransactions: any[]
@@ -25,15 +27,32 @@ interface DashboardProps {
     userProgress: any
     subscriptions: Subscription[]
     savingGoals: SavingGoal[]
+    debts: Debt[]
 }
 
-export function DashboardRefined({ initialTransactions, budget, userProgress, subscriptions, savingGoals }: DashboardProps) {
+export function DashboardRefined({ initialTransactions, budget, userProgress, subscriptions, savingGoals, debts: initialDebts }: DashboardProps) {
     const { t, formatCurrency } = useSettings()
+    const router = useRouter()
     const [transactions, setTransactions] = useState(initialTransactions)
     const [goals, setGoals] = useState<SavingGoal[]>(savingGoals)
+    const [debts, setDebts] = useState<Debt[]>(initialDebts)
+
+    // Sync state with props when they change (e.g., after revalidatePath)
+    useEffect(() => {
+        setTransactions(initialTransactions)
+    }, [initialTransactions])
+
+    useEffect(() => {
+        setGoals(savingGoals)
+    }, [savingGoals])
+
+    useEffect(() => {
+        setDebts(initialDebts)
+    }, [initialDebts])
 
     const handleTransactionAdded = (newTransactions: any[]) => {
         setTransactions(prev => [...newTransactions, ...prev])
+        router.refresh()
     }
 
     // Calculate totals for summary card
@@ -51,16 +70,8 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                     </h1>
                     <p className="text-zinc-500 text-sm">Aquí tienes tu resumen financiero.</p>
                 </div>
-                <div className="flex gap-2">
-                    <button className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
-                        <Bell className="w-5 h-5" />
-                    </button>
-                    <Link
-                        href="/settings"
-                        className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full"
-                    >
-                        <Settings className="w-5 h-5" />
-                    </Link>
+                <div className="flex gap-2 invisible">
+                    {/* Buttons removed as they don't add much value currently */}
                 </div>
             </div>
 
@@ -73,12 +84,15 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                     {/* Magic Input - Primary Action */}
                     <MagicInput onTransactionAdded={handleTransactionAdded} />
 
-                    {/* Quick Actions */}
-                    <QuickActions />
+                    {/* Quick Actions - DESKTOP */}
+                    <div className="hidden md:block">
+                        <QuickActions />
+                    </div>
 
-                    {/* Stats Overview - Grid System Improved for Mobile */}
-                    {/* Mobile: 1 col, Tablet: 2 cols, Desktop: 4 cols */}
-                    <StatsGridRefined transactions={transactions} />
+                    {/* Stats Overview - DESKTOP: Under Quick Actions */}
+                    <div className="hidden md:block">
+                        <StatsGridRefined transactions={transactions} />
+                    </div>
 
                     {/* Charts Row - Stacked on Mobile */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,14 +104,19 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                         </div>
                     </div>
 
+                    {/* Stats Overview - MOBILE: Below chart */}
+                    <div className="block md:hidden">
+                        <StatsGridRefined transactions={transactions} />
+                    </div>
+
                     {/* History & Insights - Stacked on Mobile */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden md:grid">
                         <PredictiveInsights transactions={transactions} budget={budget} />
                         <SpendingVelocity transactions={transactions} />
                     </div>
 
-                    {/* Recent Transactions List */}
-                    <div className="p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+                    {/* Recent Transactions List - DESKTOP: In left column */}
+                    <div className="hidden xl:block p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                                 {t('dashboard.recentTransactions')}
@@ -142,6 +161,11 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                 {/* Right Column: Sidebar (4 cols) */}
                 <div className="xl:col-span-4 space-y-6">
 
+                    {/* Category Distribution - MOBILE: Above Balance */}
+                    <div className="block xl:hidden">
+                        <CategoryChart transactions={transactions} />
+                    </div>
+
                     {/* Financial Summary Card */}
                     <FinancialSummaryCard
                         income={estimatedIncome}
@@ -149,6 +173,14 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                         budget={budget}
                         savingGoals={goals}
                     />
+
+                    {/* Debts Tracking Section - Positioned right below balance */}
+                    <DebtsSummaryCard debts={debts} />
+
+                    {/* Quick Actions - MOBILE: Directly below balance/debts */}
+                    <div className="block md:hidden">
+                        <QuickActions />
+                    </div>
 
                     <SavingGoalsCard initialGoals={goals} onGoalsChange={setGoals} />
 
@@ -176,6 +208,48 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
 
                 </div>
 
+            </div>
+
+            {/* Recent Transactions List - MOBILE: At the very end */}
+            <div className="xl:hidden p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
+                        {t('dashboard.recentTransactions')}
+                    </h3>
+                    <Link
+                        href="/transactions"
+                        className="text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 transition-colors"
+                    >
+                        {t('dashboard.viewAll')} <ArrowRight className="w-4 h-4" />
+                    </Link>
+                </div>
+
+                {transactions.length > 0 ? (
+                    <div className="space-y-3">
+                        {transactions.slice(0, 5).map((t) => (
+                            <div key={t.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl">{t.emoji || '📦'}</span>
+                                    <div>
+                                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 line-clamp-1">
+                                            {t.description}
+                                        </p>
+                                        <p className="text-xs text-zinc-500">
+                                            {new Date(t.date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {formatCurrency(t.amount)}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-sm text-zinc-500 text-center py-8">
+                        {t('dashboard.noTransactions')}
+                    </p>
+                )}
             </div>
         </div>
     )

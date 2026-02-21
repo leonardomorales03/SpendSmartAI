@@ -27,31 +27,23 @@ export function StatsGridRefined({ transactions }: { transactions: Transaction[]
 
     const items = [
         {
-            title: t('dashboard.totalMonth'),
-            value: formatCurrency(stats.totalMonth),
-            sub: `${stats.diffPercent > 0 ? '+' : ''}${stats.diffPercent.toFixed(0)}%`, // Removed "vs Previous" text for mobile density
-            icon: <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-indigo-400" />,
-            trend: stats.diffPercent > 0 ? 'up' : stats.diffPercent < 0 ? 'down' : 'flat',
-            color: 'bg-indigo-500/10'
-        },
-        {
             title: t('dashboard.transactions'),
             value: stats.count.toString(),
-            sub: 'transacciones', // Shortened
+            sub: 'transacciones',
             icon: <Receipt className="w-4 h-4 md:w-5 md:h-5 text-cyan-400" />,
             trend: 'flat' as const,
             color: 'bg-cyan-500/10'
         },
         {
-            title: 'Top Categoría', // Shortened title
+            title: 'Top Categoría',
             value: stats.topCategory.name,
             sub: `${stats.topCategory.percent.toFixed(0)}% del total`,
-            icon: <PieChart className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />, // Standardized icon size
+            icon: <PieChart className="w-4 h-4 md:w-5 md:h-5 text-amber-400" />,
             trend: 'flat' as const,
             color: 'bg-amber-500/10'
         },
         {
-            title: 'Promedio/Día', // Shortened
+            title: 'Promedio/Día',
             value: formatCurrency(stats.dailyAvg),
             sub: 'diario',
             icon: <Activity className="w-4 h-4 md:w-5 md:h-5 text-pink-400" />,
@@ -61,32 +53,31 @@ export function StatsGridRefined({ transactions }: { transactions: Transaction[]
     ];
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
             {items.map((item, idx) => (
                 <motion.div
                     key={item.title}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="p-3 md:p-5 bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col justify-between hover:bg-card/80 transition-all duration-300 group shadow-sm hover:shadow-md"
+                    className="p-2 md:p-5 bg-card/60 backdrop-blur-xl border border-white/5 rounded-2xl flex flex-col justify-between hover:bg-card/80 transition-all duration-300 group shadow-sm hover:shadow-md"
                 >
-                    <div className="flex justify-between items-start mb-2 md:mb-4">
-                        <div className={`p-2 rounded-xl ${item.color} transition-transform group-hover:scale-105`}>
+                    <div className="flex justify-between items-start mb-1 md:mb-4">
+                        <div className={`p-1.5 md:p-2 rounded-lg md:rounded-xl ${item.color} transition-transform group-hover:scale-105`}>
                             {item.icon}
                         </div>
-                        {/* Trend indicator could go here */}
                     </div>
 
                     <div>
-                        <p className="text-[10px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 truncate">
+                        <p className="text-[9px] md:text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5 truncate">
                             {item.title}
                         </p>
-                        <h3 className="text-lg md:text-2xl font-bold text-foreground tracking-tight truncate">
+                        <h3 className="text-sm md:text-2xl font-bold text-foreground tracking-tight truncate">
                             {item.value}
                         </h3>
-                        <p className={`text-[10px] md:text-xs font-medium mt-1 truncate ${item.trend === 'up'
+                        <p className={`text-[9px] md:text-xs font-medium mt-0.5 md:mt-1 truncate ${(item.trend as string) === 'up'
                                 ? 'text-rose-400'
-                                : item.trend === 'down'
+                                : (item.trend as string) === 'down'
                                     ? 'text-emerald-400'
                                     : 'text-zinc-500'
                             }`}>

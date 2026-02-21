@@ -18,7 +18,7 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
             if (!isNaN(newVal) && newVal > 0) {
                 // Optimistic update
                 setCurrentBudget(newVal);
-                
+
                 startTransition(async () => {
                     await updateBudget(newVal);
                 });
@@ -36,14 +36,14 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
             <div className="p-6 bg-gradient-to-br from-indigo-900 to-indigo-950 rounded-3xl text-white shadow-xl border border-indigo-800/50 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
                 <div className="relative space-y-4">
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <p className="text-indigo-300 text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
-                            <h2 className="text-3xl font-bold tracking-tight">{formatCurrency(0)}</h2>
+                    <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end gap-2 md:gap-0">
+                        <div className="w-full md:w-auto overflow-hidden">
+                            <p className="text-indigo-300 text-xs md:text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight truncate">{formatCurrency(0)}</h2>
                         </div>
-                        <div className="text-right">
+                        <div className="text-left md:text-right w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t border-indigo-500/20 md:border-none">
                             <p className="text-indigo-300 text-xs mb-1">{t('dashboard.budget')}</p>
-                            <p className="font-semibold text-lg">{formatCurrency(currentBudget)}</p>
+                            <p className="font-semibold text-base md:text-lg truncate">{formatCurrency(currentBudget)}</p>
                         </div>
                     </div>
                     <div className="relative h-3 bg-black/30 rounded-full overflow-hidden backdrop-blur-sm">
@@ -63,16 +63,16 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
 
-            <div className="flex justify-between items-end mb-6 relative">
-                <div>
-                    <p className="text-indigo-300 text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
-                    <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(total)}</h2>
+            <div className="flex flex-col md:flex-row md:justify-between items-start md:items-end gap-2 md:gap-0 mb-6 relative">
+                <div className="w-full md:w-auto overflow-hidden">
+                    <p className="text-indigo-300 text-xs md:text-sm font-medium mb-1">{t('dashboard.spendingChart')}</p>
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight truncate">{formatCurrency(total)}</h2>
                 </div>
-                <div className="text-right">
+                <div className="text-left md:text-right w-full md:w-auto mt-2 md:mt-0 pt-2 md:pt-0 border-t border-indigo-500/20 md:border-none">
                     <p className="text-indigo-300 text-xs mb-1">{t('dashboard.budget')}</p>
 
                     {isEditing ? (
-                        <div className="flex items-center gap-2 justify-end">
+                        <div className="flex items-center gap-2 justify-start md:justify-end mt-1 md:mt-0">
                             <input
                                 ref={inputRef}
                                 type="number"
@@ -90,10 +90,10 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
                         </div>
                     ) : (
                         <div
-                            className="flex items-center gap-2 justify-end cursor-pointer group/edit hover:text-indigo-200 transition-colors"
+                            className="flex items-center gap-2 justify-start md:justify-end cursor-pointer group/edit hover:text-indigo-200 transition-colors"
                             onClick={() => !isSaving && setIsEditing(true)}
                         >
-                            <p className="font-semibold text-lg">{formatCurrency(currentBudget)}</p>
+                            <p className="font-semibold text-base md:text-lg truncate">{formatCurrency(currentBudget)}</p>
                             {isSaving ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
                             ) : (
