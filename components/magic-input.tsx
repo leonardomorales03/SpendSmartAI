@@ -59,11 +59,11 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                     : await extractFromImage(formData);
 
                 if (Array.isArray(result)) {
-                    if (onTransactionAdded) {
-                        onTransactionAdded(result);
-                    }
                     for (const t_ of result) {
                         await saveTransaction(t_);
+                    }
+                    if (onTransactionAdded) {
+                        onTransactionAdded(result);
                     }
 
                     const warnings = result.filter(t => t.warning);
@@ -73,11 +73,11 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
 
                     toast.success(`${result.length} ${t('magicInput.expenses_saved')}`);
                 } else if (!('type' in result)) {
+                    const t_ = result as Transaction;
+                    await saveTransaction(t_);
                     if (onTransactionAdded) {
                         onTransactionAdded([result as Transaction]);
                     }
-                    const t_ = result as Transaction;
-                    await saveTransaction(t_);
 
                     if (t_.warning) {
                         toast.warning(`${t('magicInput.anomaly_detected')}: ${t_.warning}`, { duration: 6000 });
@@ -115,12 +115,13 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
                         return;
                     }
 
-                    if (onTransactionAdded) {
-                        onTransactionAdded(result);
-                    }
                     // It's a list of transactions
                     for (const t of result) {
                         await saveTransaction(t);
+                    }
+                    
+                    if (onTransactionAdded) {
+                        onTransactionAdded(result);
                     }
 
                     const warnings = result.filter(t => t.warning);
@@ -130,12 +131,13 @@ export function MagicInput({ onTransactionAdded }: { onTransactionAdded?: (t: Tr
 
                     toast.success(`${result.length} ${t('magicInput.expenses_registered')}`);
                 } else if (!('type' in result)) {
-                    if (onTransactionAdded) {
-                        onTransactionAdded([result as Transaction]);
-                    }
                     // It's a single transaction (fallback)
                     const t_ = result as Transaction;
                     const saveResult = await saveTransaction(t_);
+
+                    if (saveResult.success && onTransactionAdded) {
+                        onTransactionAdded([result as Transaction]);
+                    }
 
                     if (saveResult.success) {
                         toast.success(t('magicInput.expense_registered'));

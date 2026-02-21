@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { Wallet, ArrowDownRight, ArrowUpRight, Plus, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createDebt, addDebtPayment } from '@/actions/debts'
+import Link from 'next/link'
 
 type DebtType = 'credit_card' | 'loan' | 'personal' | 'other'
 type DebtStatus = 'active' | 'paid' | 'defaulted'
@@ -207,9 +208,12 @@ export function DebtsSummaryCard({ debts }: DebtsSummaryCardProps) {
               )}
             </div>
             <div className="flex flex-col items-end gap-2">
-              <div className="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-2xl">
+              <Link
+                href="/debts"
+                className="p-3 bg-zinc-100 dark:bg-zinc-900 rounded-2xl hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
                 <Wallet className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />
-              </div>
+              </Link>
               <button
                 onClick={openCreateModal}
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"

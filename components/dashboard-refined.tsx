@@ -110,9 +110,11 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                     </div>
 
                     {/* History & Insights - Stacked on Mobile */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 hidden md:grid">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <PredictiveInsights transactions={transactions} budget={budget} />
-                        <SpendingVelocity transactions={transactions} />
+                        <div className="hidden md:block">
+                            <SpendingVelocity transactions={transactions} />
+                        </div>
                     </div>
 
                     {/* Recent Transactions List - DESKTOP: In left column */}
@@ -198,13 +200,7 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                     {/* Subscriptions Widget */}
                     <SubscriptionWidget subscriptions={subscriptions} />
 
-                    {/* Tip of the day - Hidden on mobile to save vertical space */}
-                    <div className="hidden md:block p-6 rounded-3xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30">
-                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">Tip del día</p>
-                        <p className="text-sm text-indigo-900 dark:text-indigo-200 leading-relaxed">
-                            "Revisar tus suscripciones mensualmente puede ahorrarte hasta un 15% de gastos hormiga. ¡Ya diste el primer paso!"
-                        </p>
-                    </div>
+
 
                 </div>
 

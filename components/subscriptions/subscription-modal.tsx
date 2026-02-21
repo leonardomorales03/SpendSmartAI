@@ -129,9 +129,9 @@ export function SubscriptionModal({ subscription, categories, presets = [], isOp
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-zinc-950 w-full max-w-md rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-zinc-950 w-full max-w-md rounded-t-2xl sm:rounded-2xl shadow-xl border-t sm:border border-zinc-200 dark:border-zinc-800 animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200 max-h-[90vh] sm:max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
             {subscription ? 'Editar Suscripción' : 'Nueva Suscripción'}
           </h2>
@@ -140,178 +140,181 @@ export function SubscriptionModal({ subscription, categories, presets = [], isOp
           </button>
         </div>
 
-        {/* Suggested Presets */}
-        {!subscription && presets && presets.length > 0 && (
-            <div className="px-6 pt-6 pb-0">
-                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                    <Sparkles className="w-4 h-4 text-amber-500" />
-                    <span>Populares</span>
-                </div>
-                <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2 custom-scrollbar">
-                    {presets.map(preset => (
-                        <button
-                            key={preset.id}
-                            type="button"
-                            onClick={() => handlePresetSelect(preset)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all hover:scale-105"
-                        >
-                            {preset.logo_url ? (
-                                <img src={preset.logo_url} alt={preset.name} className="w-4 h-4 rounded-full object-cover" />
-                            ) : (
-                                <span>{preset.icon}</span>
-                            )}
-                            {preset.name}
-                        </button>
-                    ))}
-                </div>
-            </div>
-        )}
+        <div className="overflow-y-auto custom-scrollbar">
+          {/* Suggested Presets */}
+          {!subscription && presets && presets.length > 0 && (
+              <div className="px-5 pt-5 pb-0">
+                  <div className="flex items-center gap-2 mb-3 text-sm font-medium text-zinc-500 dark:text-zinc-400">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>Populares</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                      {presets.map(preset => (
+                          <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => handlePresetSelect(preset)}
+                              className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all hover:scale-105"
+                          >
+                              {preset.logo_url ? (
+                                  <img src={preset.logo_url} alt={preset.name} className="w-4 h-4 rounded-full object-cover" />
+                              ) : (
+                                  <span>{preset.icon}</span>
+                              )}
+                              {preset.name}
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Name & Amount */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nombre del Servicio</label>
-              <input
-                type="text"
-                list="preset-names"
-                value={name}
-                onChange={(e) => {
-                    setName(e.target.value)
-                    // Auto-fill details if matches a preset exactly
-                    const preset = presets.find(p => p.name.toLowerCase() === e.target.value.toLowerCase())
-                    if (preset && !amount) {
-                        handlePresetSelect(preset)
-                    }
-                }}
-                placeholder="Ej: Netflix"
-                className="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                required
-              />
-              <datalist id="preset-names">
-                {presets.map(preset => (
-                    <option key={preset.id} value={preset.name} />
-                ))}
-              </datalist>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Monto</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
+          <form onSubmit={handleSubmit} className="p-5 space-y-5">
+            {/* Name & Amount */}
+            <div className="grid grid-cols-1 gap-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nombre del Servicio</label>
                 <input
-                    type="number"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                    required
+                  type="text"
+                  list="preset-names"
+                  value={name}
+                  onChange={(e) => {
+                      setName(e.target.value)
+                      // Auto-fill details if matches a preset exactly
+                      const preset = presets.find(p => p.name.toLowerCase() === e.target.value.toLowerCase())
+                      if (preset && !amount) {
+                          handlePresetSelect(preset)
+                      }
+                  }}
+                  placeholder="Ej: Netflix"
+                  className="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  required
                 />
+                <datalist id="preset-names">
+                  {presets.map(preset => (
+                      <option key={preset.id} value={preset.name} />
+                  ))}
+                </datalist>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Monto</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400">$</span>
+                  <input
+                      type="number"
+                      step="0.01"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-8 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                      required
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Category & Date */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-             <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none"
-                required
+            {/* Category & Date */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoría</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none text-sm"
+                  required
+                >
+                  <option value="" disabled>Seleccionar</option>
+                  {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                          {cat.emoji} {cat.name}
+                      </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Día de Cobro</label>
+                <div className="relative">
+                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={billingDay}
+                      onChange={(e) => setBillingDay(parseInt(e.target.value))}
+                      className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                      required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Frequency & Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-3">
+                  <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Frecuencia:</label>
+                  <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
+                      <button
+                          type="button"
+                          onClick={() => setFrequency('monthly')}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${frequency === 'monthly' ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
+                      >
+                          Mensual
+                      </button>
+                      <button
+                          type="button"
+                          onClick={() => setFrequency('yearly')}
+                          className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${frequency === 'yearly' ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
+                      >
+                          Anual
+                      </button>
+                  </div>
+              </div>
+
+              <div className="flex items-center justify-between w-full sm:w-auto sm:ml-auto">
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 sm:hidden">Estado:</span>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                          type="checkbox" 
+                          checked={isActive} 
+                          onChange={(e) => setIsActive(e.target.checked)} 
+                          className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                      <span className="ml-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                          {isActive ? 'Activa' : 'Pausada'}
+                      </span>
+                  </label>
+              </div>
+            </div>
+
+            <div className="pt-4 flex gap-3 justify-end border-t border-zinc-100 dark:border-zinc-800 mt-6 pb-8 sm:pb-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-xl transition-colors"
+                disabled={isSaving}
               >
-                <option value="" disabled>Seleccionar</option>
-                {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>
-                        {cat.emoji} {cat.name}
-                    </option>
-                ))}
-              </select>
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="px-5 py-2.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" /> Guardar
+                  </>
+                )}
+              </button>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Día de Cobro</label>
-              <div className="relative">
-                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={billingDay}
-                    onChange={(e) => setBillingDay(parseInt(e.target.value))}
-                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
-                    required
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Frequency & Status */}
-          <div className="flex items-center gap-6 pt-2">
-            <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Frecuencia:</label>
-                <div className="flex bg-zinc-100 dark:bg-zinc-900 rounded-lg p-1">
-                    <button
-                        type="button"
-                        onClick={() => setFrequency('monthly')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${frequency === 'monthly' ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
-                    >
-                        Mensual
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setFrequency('yearly')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${frequency === 'yearly' ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}
-                    >
-                        Anual
-                    </button>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-2 ml-auto">
-                <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        checked={isActive} 
-                        onChange={(e) => setIsActive(e.target.checked)} 
-                        className="sr-only peer" 
-                    />
-                    <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-zinc-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
-                    <span className="ml-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        {isActive ? 'Activa' : 'Pausada'}
-                    </span>
-                </label>
-            </div>
-          </div>
-
-          <div className="pt-4 flex gap-3 justify-end border-t border-zinc-100 dark:border-zinc-800 mt-6">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-900 rounded-xl transition-colors"
-              disabled={isSaving}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className="px-5 py-2.5 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-colors flex items-center gap-2 shadow-lg shadow-indigo-500/20"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" /> Guardar Suscripción
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   )

@@ -164,13 +164,7 @@ export function Dashboard({ initialTransactions, budget, userProgress, subscript
             {/* Subscriptions Widget */}
             <SubscriptionWidget subscriptions={subscriptions} />
             
-            {/* Tip of the day (Placeholder for now) */}
-            <div className="p-5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-900/30">
-                <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2">Tip del día</p>
-                <p className="text-sm text-indigo-900 dark:text-indigo-200">
-                    "Revisar tus suscripciones mensualmente puede ahorrarte hasta un 15% de gastos hormiga. ¡Ya diste el primer paso!"
-                </p>
-            </div>
+
 
         </div>
 

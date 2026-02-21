@@ -18,6 +18,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SpendSmart AI",
   description: "Tu copiloto financiero inteligente",
+  icons: {
+    icon: "/spendsmart-icon.svg",
+    shortcut: "/spendsmart-icon.svg",
+    apple: "/spendsmart-icon.svg",
+  },
 };
 
 import { Navigation } from "@/components/navigation";
