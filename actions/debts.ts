@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
 
 type DebtType = 'credit_card' | 'loan' | 'personal' | 'other'
 type DebtStatus = 'active' | 'paid' | 'defaulted'
@@ -114,6 +115,7 @@ export async function addDebtPayment(input: AddDebtPaymentInput) {
     return { success: false, error: 'Monto inválido' }
   }
 
+  // 1. Load Debt
   const { data: debt, error: debtError } = await supabase
     .from('debts')
     .select('*')
@@ -126,6 +128,55 @@ export async function addDebtPayment(input: AddDebtPaymentInput) {
     return { success: false, error: 'Deuda no encontrada' }
   }
 
+  // 2. Find or Create "Deuda" Category
+  let categoryId: string | null = null
+  const { data: catData } = await supabase
+    .from('categories')
+    .select('id')
+    .ilike('name', 'Deuda')
+    .or(`user_id.is.null,user_id.eq.${user.id}`)
+    .limit(1)
+    .single()
+
+  if (catData) {
+    categoryId = catData.id
+  } else {
+    const { data: newCat, error: catError } = await supabase
+      .from('categories')
+      .insert({
+        name: 'Deuda',
+        emoji: '💸',
+        user_id: user.id
+      })
+      .select('id')
+      .single()
+
+    if (!catError && newCat) {
+      categoryId = newCat.id
+    }
+  }
+
+  // 3. Create Transaction for the payment
+  const { data: transaction, error: transError } = await supabase
+    .from('transactions')
+    .insert({
+      user_id: user.id,
+      amount: amount,
+      category_id: categoryId,
+      description: `Pago de deuda: ${debt.name}`,
+      date: input.date ?? new Date().toISOString()
+    })
+    .select('id')
+    .single()
+
+  if (transError) {
+    console.error('Error creating transaction for debt payment:', transError)
+    // We continue anyway, but it's a warning
+  }
+
+  const transactionId = transaction?.id || null
+
+  // 4. Update Debt remaining amount
   const newRemaining = Number(debt.remaining_amount) - amount
   const nextStatus: DebtStatus = newRemaining <= 0 ? 'paid' : debt.status
 
@@ -134,7 +185,7 @@ export async function addDebtPayment(input: AddDebtPaymentInput) {
     .insert({
       debt_id: input.debt_id,
       user_id: user.id,
-      transaction_id: input.transaction_id ?? null,
+      transaction_id: transactionId,
       amount,
       date: input.date ?? new Date().toISOString(),
       note: input.note ?? null,
@@ -160,6 +211,114 @@ export async function addDebtPayment(input: AddDebtPaymentInput) {
     return { success: false, error: updateError.message }
   }
 
-  return { success: true }
+  revalidatePath('/')
+  revalidatePath('/transactions')
+
+  return { success: true, transactionId }
+}
+
+export async function syncDebtPayment(transactionId: string, newAmount: number, newDebtId?: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // 1. Get current payment
+  const { data: payment, error: pError } = await supabase
+    .from('debt_payments')
+    .select('*')
+    .eq('transaction_id', transactionId)
+    .single()
+
+  if (pError || !payment) return
+
+  const oldAmount = Number(payment.amount)
+  const oldDebtId = payment.debt_id
+  const isDebtChange = newDebtId && newDebtId !== oldDebtId
+
+  // 2. Update debt(s) balance
+  if (isDebtChange) {
+    // Revert OLD debt
+    const { data: oldDebt } = await supabase.from('debts').select('*').eq('id', oldDebtId).single()
+    if (oldDebt) {
+      await supabase.from('debts').update({
+        remaining_amount: Number(oldDebt.remaining_amount) + oldAmount,
+        status: 'active',
+        updated_at: new Date().toISOString()
+      }).eq('id', oldDebtId)
+    }
+
+    // Apply to NEW debt
+    const { data: newDebt } = await supabase.from('debts').select('*').eq('id', newDebtId).single()
+    if (newDebt) {
+      const remaining = Number(newDebt.remaining_amount) - newAmount
+      await supabase.from('debts').update({
+        remaining_amount: remaining < 0 ? 0 : remaining,
+        status: remaining <= 0 ? 'paid' : 'active',
+        updated_at: new Date().toISOString()
+      }).eq('id', newDebtId)
+    }
+  } else {
+    // Just amount change on the same debt
+    const diff = Number(newAmount) - oldAmount
+    const { data: debt } = await supabase.from('debts').select('*').eq('id', oldDebtId).single()
+    if (debt) {
+      const remaining = Number(debt.remaining_amount) - diff
+      await supabase.from('debts').update({
+        remaining_amount: remaining < 0 ? 0 : remaining,
+        status: remaining <= 0 ? 'paid' : 'active',
+        updated_at: new Date().toISOString()
+      }).eq('id', oldDebtId)
+    }
+  }
+
+  // 3. Update payment record
+  await supabase
+    .from('debt_payments')
+    .update({
+      amount: newAmount,
+      debt_id: newDebtId || oldDebtId
+    })
+    .eq('id', payment.id)
+}
+
+export async function deleteDebtPaymentByTransaction(transactionId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // 1. Get the payment to know how much to revert
+  const { data: payment, error: pError } = await supabase
+    .from('debt_payments')
+    .select('*')
+    .eq('transaction_id', transactionId)
+    .single()
+
+  if (pError || !payment) return
+
+  // 2. Revert debt balance
+  const { data: debt, error: dError } = await supabase
+    .from('debts')
+    .select('*')
+    .eq('id', payment.debt_id)
+    .single()
+
+  if (!dError && debt) {
+    const newRemaining = Number(debt.remaining_amount) + Number(payment.amount)
+    const nextStatus = 'active' // Reverting a payment usually makes it active again
+    await supabase
+      .from('debts')
+      .update({
+        remaining_amount: newRemaining,
+        status: nextStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', payment.debt_id)
+  }
+
+  // 3. Delete the payment record
+  await supabase
+    .from('debt_payments')
+    .delete()
+    .eq('id', payment.id)
 }
 
