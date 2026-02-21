@@ -5,6 +5,16 @@ export type Category = {
     user_id?: string | null;
 };
 
+export type TransactionItem = {
+    id: string;
+    transaction_id: string;
+    name: string;
+    quantity: number;
+    unit_price: number;
+    total_amount: number;
+    category?: string;
+};
+
 export type Transaction = {
     id: string;
     amount: number;
@@ -15,6 +25,7 @@ export type Transaction = {
     emoji?: string; // Derived from category or AI
     warning?: string; // Anomaly detection warning
     debt_id?: string; // Optional link to a debt
+    items?: TransactionItem[];
 };
 
 export type TransactionDraft = {

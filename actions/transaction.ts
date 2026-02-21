@@ -89,7 +89,7 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
         console.log('--- TEXTO EXTRAÍDO DE PDF (pdf2json) ---');
         console.log(text.substring(0, 200) + '...'); // Log truncado para no ensuciar
 
-        return extractTransactionDetails(text, { autoSaveItems: true });
+        return extractTransactionDetails(text, { autoSaveItems: false });
     } catch (error) {
         console.error('Error al procesar PDF:', error);
         throw new Error('No se pudo procesar el PDF');
@@ -249,7 +249,16 @@ export async function extractTransactionDetails(
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
                 warning,
-                debt_id: (t as any).debt_id
+                debt_id: (t as any).debt_id,
+                items: t.items?.map(i => ({
+                    id: crypto.randomUUID(),
+                    transaction_id: '', // Will be set on save
+                    name: i.name || 'Item',
+                    quantity: i.quantity || 1,
+                    unit_price: i.unit_price || 0,
+                    total_amount: i.total_amount || 0,
+                    category: i.category
+                }))
             };
 
             if (options?.autoSaveItems && user) {
@@ -310,8 +319,12 @@ export async function saveTransaction(transaction: Transaction, items?: AiTransa
 
     const transactionId = data.id as string;
 
-    if (items && items.length > 0) {
-        const validItems = items
+    // Use provided items OR items from the transaction object
+    // We handle both AiTransactionItem and TransactionItem structures
+    const itemsToProcess = items || transaction.items;
+
+    if (itemsToProcess && itemsToProcess.length > 0) {
+        const validItems = itemsToProcess
             .filter((i) => i.name && (i.total_amount || i.unit_price))
             .map((i) => ({
                 user_id: user.id,
@@ -476,12 +489,22 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
                 description: t.description || 'Gasto desde imagen',
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
-                warning
+                warning,
+                items: t.items?.map(i => ({
+                    id: crypto.randomUUID(),
+                    transaction_id: '',
+                    name: i.name || 'Item',
+                    quantity: i.quantity || 1,
+                    unit_price: i.unit_price || 0,
+                    total_amount: i.total_amount || 0,
+                    category: i.category
+                }))
             };
 
-            if (user) {
-                await saveTransaction(transaction, t.items);
-            }
+            // Removed explicit save to avoid duplication in MagicInput
+            // if (user) {
+            //     await saveTransaction(transaction, t.items);
+            // }
 
             return transaction;
         }));
@@ -510,7 +533,7 @@ export async function getTransactions(
 
     let query = supabase
         .from('transactions')
-        .select('*, category:categories(name, emoji), debt_payment:debt_payments(debt_id)', { count: 'exact' })
+        .select('*, category:categories(name, emoji), debt_payment:debt_payments(debt_id), items:transaction_items(*)', { count: 'exact' })
         .eq('user_id', user.id)
         .order('date', { ascending: false })
         .order('created_at', { ascending: false });

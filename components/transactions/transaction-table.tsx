@@ -1,13 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { Transaction } from '@/lib/types'
+import { Transaction, TransactionItem } from '@/lib/types'
 import { formatCurrency } from '@/lib/utils'
-import { Trash2, ChevronLeft, ChevronRight, Edit2, ChevronDown } from 'lucide-react'
+import { Trash2, ChevronLeft, ChevronRight, Edit2, ChevronDown, ShoppingBag } from 'lucide-react'
 import { deleteTransaction } from '@/actions/transaction'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { EditTransactionModal } from './edit-transaction-modal'
+
+function TransactionItemsList({ items }: { items: TransactionItem[] }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="mt-4 border rounded-lg overflow-hidden bg-background">
+      <div className="bg-muted/30 px-3 py-2 border-b flex items-center gap-2">
+        <ShoppingBag className="w-3 h-3 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">Detalle de compra</span>
+      </div>
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+            <tr>
+                <th className="px-3 py-2 text-left font-medium text-muted-foreground">Producto</th>
+                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Cant.</th>
+                <th className="px-3 py-2 text-right font-medium text-muted-foreground">Total</th>
+            </tr>
+        </thead>
+        <tbody className="divide-y">
+            {items.map(item => (
+                <tr key={item.id}>
+                    <td className="px-3 py-2">{item.name}</td>
+                    <td className="px-3 py-2 text-right text-muted-foreground">{item.quantity}</td>
+                    <td className="px-3 py-2 text-right font-medium">{formatCurrency(item.total_amount)}</td>
+                </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
 
 interface TransactionTableProps {
   transactions: Transaction[]
@@ -26,6 +56,17 @@ export function TransactionTable({
   const searchParams = useSearchParams()
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+
+  const toggleItems = (id: string) => {
+    const newSet = new Set(expandedItems)
+    if (newSet.has(id)) {
+      newSet.delete(id)
+    } else {
+      newSet.add(id)
+    }
+    setExpandedItems(newSet)
+  }
 
   const totalPages = Math.ceil(totalCount / pageSize)
 
@@ -139,47 +180,69 @@ export function TransactionTable({
             </thead>
             <tbody className="divide-y bg-card">
               {transactions.map((t) => (
-                <tr key={`${t.id}-desktop`} className="hover:bg-muted/5 transition-colors">
-                  <td className="px-4 py-3 text-2xl text-center">
-                    {t.emoji || t.category?.emoji || '📦'}
-                  </td>
-                  <td className="px-4 py-3 font-medium">
-                    {t.description}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
-                      {t.category?.name || 'General'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
-                    {new Date(t.date).toLocaleString('es-CO', {
-                      day: 'numeric',
-                      month: 'short',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </td>
-                  <td className="px-4 py-3 text-right font-semibold">
-                    {formatCurrency(t.amount)}
-                  </td>
-                  <td className="px-4 py-3 text-center flex justify-center gap-2">
-                    <button
-                      onClick={() => setEditingTransaction(t)}
-                      className="p-2 text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors"
-                      title="Editar gasto"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      disabled={isDeleting === t.id}
-                      className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors disabled:opacity-50"
-                      title="Eliminar gasto"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
+                <>
+                  <tr key={`${t.id}-desktop`} className="hover:bg-muted/5 transition-colors">
+                    <td className="px-4 py-3 text-2xl text-center">
+                      {t.emoji || t.category?.emoji || '📦'}
+                    </td>
+                    <td className="px-4 py-3 font-medium">
+                      <div className="flex flex-col items-start gap-1">
+                        <span>{t.description}</span>
+                        {t.items && t.items.length > 0 && (
+                          <button
+                            onClick={() => toggleItems(t.id)}
+                            className="text-xs flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            <ShoppingBag className="w-3 h-3" />
+                            {expandedItems.has(t.id) ? 'Ocultar' : 'Ver'} {t.items.length} items
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-secondary text-secondary-foreground">
+                        {t.category?.name || 'General'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground whitespace-nowrap">
+                      {new Date(t.date).toLocaleString('es-CO', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold">
+                      {formatCurrency(t.amount)}
+                    </td>
+                    <td className="px-4 py-3 text-center flex justify-center gap-2">
+                      <button
+                        onClick={() => setEditingTransaction(t)}
+                        className="p-2 text-indigo-500 hover:bg-indigo-500/10 rounded-md transition-colors"
+                        title="Editar gasto"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(t.id)}
+                        disabled={isDeleting === t.id}
+                        className="p-2 text-destructive hover:bg-destructive/10 rounded-md transition-colors disabled:opacity-50"
+                        title="Eliminar gasto"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedItems.has(t.id) && t.items && t.items.length > 0 && (
+                    <tr key={`${t.id}-items`} className="bg-muted/5">
+                      <td colSpan={6} className="px-4 py-2 pb-4">
+                        <div className="ml-12 max-w-2xl">
+                          <TransactionItemsList items={t.items} />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))}
             </tbody>
           </table>
@@ -218,7 +281,10 @@ export function TransactionTable({
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="mt-2">
+                   <TransactionItemsList items={t.items || []} />
+                </div>
+                <div className="flex items-center gap-2 mt-4">
                   <button
                     onClick={() => setEditingTransaction(t)}
                     className="flex-1 flex items-center justify-center gap-2 py-2 px-3 text-xs font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-500/20 transition-colors"
