@@ -16,12 +16,13 @@ import Link from 'next/link'
 import { LevelCard } from '@/components/gamification/level-card'
 import { useSettings } from '@/components/providers/settings-provider'
 
-import { Subscription, SavingGoal } from '@/lib/types'
+import { Subscription, SavingGoal, Transaction } from '@/lib/types'
 import { SavingGoalsCard } from '@/components/saving-goals-card'
 
 interface DashboardProps {
-  initialTransactions: any[]
+  initialTransactions: Transaction[]
   budget: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   userProgress: any
   subscriptions: Subscription[]
   savingGoals: SavingGoal[]
@@ -29,17 +30,17 @@ interface DashboardProps {
 
 export function Dashboard({ initialTransactions, budget, userProgress, subscriptions, savingGoals }: DashboardProps) {
   const { t, formatCurrency } = useSettings()
-  const [transactions, setTransactions] = useState(initialTransactions)
+  const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
   const [goals, setGoals] = useState<SavingGoal[]>(savingGoals)
   
-  const handleTransactionAdded = (newTransactions: any[]) => {
+  const handleTransactionAdded = (newTransactions: Transaction[]) => {
     setTransactions(prev => [...newTransactions, ...prev])
   }
 
   // Calculate totals for summary card
   // Note: We need income data. For now, we assume budget is the target "income" or limit.
   // Ideally, we should have an 'income' type transaction or user setting.
-  const totalExpenses = transactions.reduce((acc, t) => acc + t.amount, 0)
+  const totalExpenses = transactions.reduce((acc, transaction) => acc + transaction.amount, 0)
   // Mock income for now (budget + some variance or 0 if strictly budget based)
   const estimatedIncome = budget 
 
@@ -145,7 +146,6 @@ export function Dashboard({ initialTransactions, budget, userProgress, subscript
                 income={estimatedIncome} 
                 expenses={totalExpenses} 
                 budget={budget}
-                savingGoals={goals}
             />
 
             <SavingGoalsCard initialGoals={goals} onGoalsChange={setGoals} />

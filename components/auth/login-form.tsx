@@ -39,7 +39,7 @@ export function LoginForm({ onForgotPassword, onRegisterClick }: LoginFormProps)
       if (result?.error) {
         toast.error(result.error)
       }
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsLoading(false)

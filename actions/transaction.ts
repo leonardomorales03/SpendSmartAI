@@ -302,6 +302,7 @@ export async function extractTransactionDetails(
                 date: new Date().toISOString(),
                 emoji: t.emoji || category.emoji || '📦',
                 warning,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 debt_id: (t as any).debt_id,
                 items: t.items?.map(i => ({
                     id: crypto.randomUUID(),
@@ -618,6 +619,7 @@ export async function getTransactions(
         return { data: [], count: 0, error: error.message };
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const data = (rawData as any[]).map(t => ({
         ...t,
         debt_id: Array.isArray(t.debt_payment)

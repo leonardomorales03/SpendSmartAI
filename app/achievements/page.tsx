@@ -1,4 +1,4 @@
-import { getAchievements, getUserProgress } from '@/actions/gamification'
+import { getAchievements } from '@/actions/gamification'
 import { Trophy, Lock, CheckCircle2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function AchievementsPage() {
     const achievements = await getAchievements()
-    const progress = await getUserProgress()
+    // const progress = await getUserProgress()
 
     const unlockedCount = achievements.filter(a => a.unlocked_at).length
     const totalCount = achievements.length

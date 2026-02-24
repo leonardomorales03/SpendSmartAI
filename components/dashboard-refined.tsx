@@ -11,19 +11,20 @@ import { SubscriptionWidget } from '@/components/subscription-widget'
 import { PredictiveInsights } from '@/components/predictive-insights'
 import { FinancialSummaryCard } from '@/components/financial-summary-card'
 import { QuickActions } from '@/components/quick-actions'
-import { ArrowRight, Settings, Bell } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 import { LevelCard } from '@/components/gamification/level-card'
 import { useSettings } from '@/components/providers/settings-provider'
 
-import { Subscription, SavingGoal } from '@/lib/types'
+import { Subscription, SavingGoal, Transaction } from '@/lib/types'
 import { SavingGoalsCard } from '@/components/saving-goals-card'
 import { Debt, DebtsSummaryCard } from '@/components/debts-summary-card'
 
 interface DashboardProps {
-    initialTransactions: any[]
+    initialTransactions: Transaction[]
     budget: number
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     userProgress: any
     subscriptions: Subscription[]
     savingGoals: SavingGoal[]
@@ -33,7 +34,7 @@ interface DashboardProps {
 export function DashboardRefined({ initialTransactions, budget, userProgress, subscriptions, savingGoals, debts: initialDebts }: DashboardProps) {
     const { t, formatCurrency } = useSettings()
     const router = useRouter()
-    const [transactions, setTransactions] = useState(initialTransactions)
+    const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
     const [goals, setGoals] = useState<SavingGoal[]>(savingGoals)
     const [debts, setDebts] = useState<Debt[]>(initialDebts)
 
@@ -50,7 +51,7 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
         setDebts(initialDebts)
     }, [initialDebts])
 
-    const handleTransactionAdded = (newTransactions: any[]) => {
+    const handleTransactionAdded = (newTransactions: Transaction[]) => {
         setTransactions(prev => [...newTransactions, ...prev])
         router.refresh()
     }
@@ -181,7 +182,6 @@ export function DashboardRefined({ initialTransactions, budget, userProgress, su
                         income={estimatedIncome}
                         expenses={totalExpenses}
                         budget={budget}
-                        savingGoals={goals}
                     />
 
                     {/* Debts Tracking Section - Positioned right below balance */}

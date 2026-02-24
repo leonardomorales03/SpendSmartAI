@@ -277,6 +277,7 @@ export function SubscriptionsClient({ initialSubscriptions, categories, presets 
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl overflow-hidden ${!s.is_active ? 'bg-zinc-100 dark:bg-zinc-900' : 'bg-indigo-50 dark:bg-indigo-900/20'}`}>
                         {s.logo_url ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
                         ) : (
                              s.category?.emoji || '📅'

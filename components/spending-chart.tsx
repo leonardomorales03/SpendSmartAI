@@ -27,7 +27,7 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
         setIsEditing(false);
     }
 
-    const total = transactions.reduce((acc, t) => acc + t.amount, 0);
+    const total = transactions.reduce((acc, transaction) => acc + transaction.amount, 0);
     const safeBudget = currentBudget > 0 ? currentBudget : 1;
     const percentage = Math.min((total / safeBudget) * 100, 100);
 
@@ -114,7 +114,12 @@ export function SpendingChart({ transactions, budget }: { transactions: Transact
             </div>
 
             <div className="flex justify-between items-center mt-3 text-xs text-indigo-300/80 font-medium">
-                <span>0%</span>
+                <span className={currentBudget - total < 0 ? 'text-red-300 font-bold' : ''}>
+                    {currentBudget - total < 0 
+                        ? `Excedido: ${formatCurrency(Math.abs(currentBudget - total))}`
+                        : `Disponible: ${formatCurrency(currentBudget - total)}`
+                    }
+                </span>
                 <span className={percentage > 100 ? 'text-red-300 font-bold' : ''}>
                     {percentage.toFixed(1)}% {t('dashboard.used')}
                 </span>

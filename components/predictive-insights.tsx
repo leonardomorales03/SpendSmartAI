@@ -3,9 +3,7 @@
 import { useState, useTransition, useEffect } from "react"
 import { Transaction } from "@/lib/types"
 import { Sparkles, Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { getAIPredictiveInsights } from "@/actions/insights"
-import { toast } from "sonner"
 
 interface PredictiveInsightsProps {
     transactions: Transaction[]
@@ -35,25 +33,6 @@ export function PredictiveInsights({ transactions, budget }: PredictiveInsightsP
     const effectiveDay = Math.max(currentDay, 1);
     const dailyAverage = totalSpent / effectiveDay;
     const projectedTotal = dailyAverage * daysInMonth;
-    const isExceeding = projectedTotal > budget;
-
-    // Calculate "days until depletion" if exceeding
-    const remainingBudget = budget - totalSpent;
-    let daysUntilDepletion: number | null = null;
-
-    if (remainingBudget > 0 && dailyAverage > 0) {
-        daysUntilDepletion = Math.floor(remainingBudget / dailyAverage);
-    } else if (remainingBudget <= 0) {
-        daysUntilDepletion = 0; // Already exceeded
-    }
-
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CO', {
-            style: 'currency',
-            currency: 'COP',
-            maximumFractionDigits: 0
-        }).format(amount);
-    };
 
     useEffect(() => {
         if (transactions.length === 0 || budget === 0) return;

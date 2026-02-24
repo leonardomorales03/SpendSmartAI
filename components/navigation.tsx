@@ -1,18 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
     Home,
     PieChart,
     Wallet,
     MessageSquare,
     Settings,
-    LogOut,
-    Menu,
-    X
+    LogOut
 } from 'lucide-react';
 import { useSettings } from '@/components/providers/settings-provider';
 

@@ -1,11 +1,10 @@
 'use client'
 
 import { useSettings } from "@/components/providers/settings-provider";
-import Link from "next/link";
 import { AppLogo } from "@/components/ui/app-logo";
 
-export function Header({ email }: { email?: string }) {
-    const { t, profile } = useSettings();
+export function Header() {
+    const { t } = useSettings();
 
     return (
         <header className="max-w-2xl mx-auto mb-8 text-center space-y-4">

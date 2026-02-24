@@ -34,17 +34,16 @@ export function RegisterForm({ onLoginClick }: RegisterFormProps) {
     handleSubmit,
     watch,
     control,
-    setValue,
     formState: { errors },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     mode: 'onBlur',
   })
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const password = watch('password')
   const confirmPassword = watch('confirmPassword')
   const email = watch('email')
-  const termsAccepted = watch('termsAccepted')
 
   // Validar email en tiempo real para dominios
   const [emailDomainError, setEmailDomainError] = useState<string | null>(null)
@@ -117,7 +116,7 @@ export function RegisterForm({ onLoginClick }: RegisterFormProps) {
         }
         setSuccessMessage(result.message || 'Registro exitoso.')
       }
-    } catch (error) {
+    } catch {
       setStatus('error')
       setErrorMessage('Ocurrió un error inesperado de conexión. Verifica tu internet.')
     }

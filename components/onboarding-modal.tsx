@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Wallet, Sparkles, User, Check, ArrowRight } from 'lucide-react'
+import { Wallet, Sparkles, User, ArrowRight } from 'lucide-react'
 import { useSettings } from '@/components/providers/settings-provider'
 import { updatePreferences, updateProfile } from '@/actions/settings'
 import { SubscriptionPreset, getSubscriptionPresets } from '@/actions/subscription-presets'
@@ -16,7 +16,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
-    const { t, settings } = useSettings()
+    useSettings()
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(false)
     const [presets, setPresets] = useState<SubscriptionPreset[]>([])
@@ -30,7 +30,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
 
     // Step 3: Profile
     const [displayName, setDisplayName] = useState('')
-    const [avatarUrl, setAvatarUrl] = useState('')
+    const [avatarUrl] = useState('')
 
     useEffect(() => {
         if (isOpen) {
@@ -208,6 +208,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
                                             }`}
                                         >
                                             {preset.logo_url ? (
+                                                /* eslint-disable-next-line @next/next/no-img-element */
                                                 <img src={preset.logo_url} alt={preset.name} className="w-8 h-8 rounded-full object-cover" />
                                             ) : (
                                                 <span className="text-2xl">{preset.icon}</span>
@@ -238,6 +239,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
                                 <div className="space-y-4">
                                     <div className="flex justify-center mb-6">
                                         <div className="relative">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
                                             <img 
                                                 src={avatarUrl || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName || 'user'}`}
                                                 alt="Avatar"

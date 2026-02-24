@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Trophy, Star, Flame } from 'lucide-react'
+import { Trophy, Flame } from 'lucide-react'
 import Link from 'next/link'
 import { useSettings } from '@/components/providers/settings-provider'
 

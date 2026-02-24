@@ -1,6 +1,6 @@
 'use server'
 
-import { groq, GROQ_MODELS } from '@/lib/groq'
+import { groq } from '@/lib/groq'
 import { Transaction } from '@/lib/types'
 import { createClient } from '@/lib/supabase/server'
 

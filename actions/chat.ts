@@ -286,6 +286,7 @@ Examples:
 
             const list = items || [];
             let total = 0;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             list.forEach((i: any) => {
                 total += Number(i.total_amount || i.unit_price || 0);
             });

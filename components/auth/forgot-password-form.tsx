@@ -36,7 +36,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         toast.success(result.message)
         onBack()
       }
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsLoading(false)

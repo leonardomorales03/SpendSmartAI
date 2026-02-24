@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Flame } from 'lucide-react'
 
 export function StreakFlame({ streak }: { streak: number }) {

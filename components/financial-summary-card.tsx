@@ -1,31 +1,23 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, Target } from 'lucide-react'
+import { Wallet, ArrowUpRight, ArrowDownRight, TrendingUp } from 'lucide-react'
 import { useSettings } from '@/components/providers/settings-provider'
 import { cn } from '@/lib/utils'
-import { SavingGoal } from '@/lib/types'
 
 interface FinancialSummaryCardProps {
     income: number
     expenses: number
     budget: number
-    savingGoals?: SavingGoal[]
 }
 
-export function FinancialSummaryCard({ income, expenses, budget, savingGoals = [] }: FinancialSummaryCardProps) {
-    const { formatCurrency, t } = useSettings()
+export function FinancialSummaryCard({ income, expenses, budget }: FinancialSummaryCardProps) {
+    const { formatCurrency } = useSettings()
 
     // Calculations
     const balance = income - expenses
     const budgetUsedPercent = Math.min(budget > 0 ? (expenses / budget) * 100 : 0, 100)
     const isOverBudget = expenses > budget
-
-    const totalTargetSavings = savingGoals.reduce((sum, goal) => sum + (goal.target_amount || 0), 0)
-    const totalCurrentSavings = savingGoals.reduce((sum, goal) => sum + (goal.current_amount || 0), 0)
-    const savingsProgress = totalTargetSavings > 0
-        ? Math.min((totalCurrentSavings / totalTargetSavings) * 100, 100)
-        : 0
 
     // Proyección simple: si estamos a día 15 y gastamos X, proyectamos 2X a fin de mes
     const today = new Date().getDate()

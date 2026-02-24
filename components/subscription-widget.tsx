@@ -89,6 +89,7 @@ export function SubscriptionWidget({ subscriptions = [] }: SubscriptionWidgetPro
                                     <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 bg-white/10 flex items-center justify-center">
                                         {sub.logo_url ? (
                                             <>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
                                                 <img
                                                     src={sub.logo_url}
                                                     alt={sub.name}

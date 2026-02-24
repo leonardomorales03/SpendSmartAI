@@ -24,7 +24,7 @@ export default async function TransactionsPage({
   const startDate = resolvedSearchParams.startDate
   const endDate = resolvedSearchParams.endDate
 
-  const { data: transactions, count, error } = await getTransactions(page, 10, {
+  const { data: transactions, count } = await getTransactions(page, 10, {
     category_id: categoryId,
     search,
     startDate,

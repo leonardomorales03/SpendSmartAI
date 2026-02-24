@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useOptimistic, useTransition, useRef, useEffect } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { extractTransactionDetails, saveTransaction, transcribeAudio, extractFromImage, extractFromPdf } from '@/actions/transaction'
 import { getCategories } from '@/actions/categories'
 import { Transaction, AIAnswer, Category, SavingGoal } from '@/lib/types'
-import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trash2, Trophy } from 'lucide-react'
+import { Sparkles, ArrowUp, Loader2, MessageSquare, Mic, Camera, StopCircle, X, Trophy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import confetti from 'canvas-confetti'
@@ -23,8 +23,9 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-    const { isRecording, silenceWarning, toggleRecording } = useAudioRecorder({
+    const { isRecording, toggleRecording } = useAudioRecorder({
         onTranscription: (text) => setInput(text),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getMessage: (key) => t(key as any),
         transcribe: transcribeAudio,
     })
@@ -153,11 +154,14 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
                         toast.success(t('magicInput.expense_registered'));
 
                         // Check for unlocked achievements
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore
                         if (saveResult.unlockedAchievements && saveResult.unlockedAchievements.length > 0) {
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             saveResult.unlockedAchievements.forEach((achievement: any) => {
-                                toast.custom((id) => (
+                                toast.custom(() => (
                                     <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg flex items-center gap-4 border border-white/20">
                                         <div className="p-2 bg-white/20 rounded-full">
                                             <Trophy className="w-6 h-6 animate-bounce" />
@@ -189,7 +193,7 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
                     toast.info(aiAnswer.text);
                 }
 
-            } catch (error) {
+            } catch {
                 toast.error(t('magicInput.processing_error'));
                 setInput(rawText); // Restore on error
                 setShowManualFallback(true);
@@ -214,6 +218,7 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
     // Reset confirm state on input change
     useEffect(() => {
         if (showClearConfirm) setShowClearConfirm(false);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [input]);
 
     const handleClear = () => {
@@ -231,6 +236,7 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             handleSubmit(e as any);
         }
     };
@@ -299,13 +305,15 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
             } else {
                 toast.error('Error al guardar: ' + result.error);
             }
+        } catch {
+            toast.error('Error al guardar la transacción');
         } finally {
             setIsSavingManual(false);
         }
     };
 
     const hasContent = input.trim().length > 0;
-    const showCamera = !hasContent && !isRecording;
+    // const showCamera = !hasContent && !isRecording;
 
     return (
         <div className="w-full max-w-2xl mx-auto space-y-4">
@@ -371,11 +379,6 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
                                     className="text-red-500 animate-pulse cursor-pointer p-2 hover:bg-white/5 rounded-full transition-colors relative"
                                 >
                                     <StopCircle className="w-6 h-6" />
-                                    {silenceWarning !== null && (
-                                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white shadow-sm animate-bounce">
-                                            {silenceWarning}
-                                        </span>
-                                    )}
                                 </button>
                             ) : (
                                 <div className={cn(

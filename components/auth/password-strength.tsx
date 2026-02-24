@@ -67,7 +67,7 @@ export function PasswordStrength({ password = '', onStrengthChange }: PasswordSt
     onStrengthChange(meetsRequirements && !hasCommonPatterns)
   }, [meetsRequirements, hasCommonPatterns, onStrengthChange])
 
-  const getColor = (index: number) => {
+  const getColor = () => {
     if (strength === 0) return 'bg-red-500'
     if (strength === 1) return 'bg-yellow-500'
     if (strength === 2) return 'bg-green-500'
@@ -88,7 +88,7 @@ export function PasswordStrength({ password = '', onStrengthChange }: PasswordSt
             }}
             className={cn(
               "h-full rounded-full transition-colors duration-300",
-              index <= strength ? getColor(index) : "bg-zinc-800"
+              index <= strength ? getColor() : "bg-zinc-800"
             )}
           />
         ))}

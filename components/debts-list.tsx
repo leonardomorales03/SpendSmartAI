@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useSettings } from '@/components/providers/settings-provider'
 import { cn } from '@/lib/utils'
-import { ArrowLeft, Plus, Loader2, Wallet, ArrowDownRight, ArrowUpRight } from 'lucide-react'
+import { ArrowLeft, Plus, Loader2, Wallet, ArrowDownRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { createDebt, addDebtPayment, Debt } from '@/actions/debts'
 import Link from 'next/link'

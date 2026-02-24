@@ -43,7 +43,7 @@ export function CategoryModal({ category, isOpen, onClose }: CategoryModalProps)
       } else {
         toast.error('Error: ' + result.error)
       }
-    } catch (error) {
+    } catch {
       toast.error('Ocurrió un error inesperado')
     } finally {
       setIsSaving(false)

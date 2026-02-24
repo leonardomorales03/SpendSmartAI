@@ -6,7 +6,7 @@ import { getBudget } from "@/actions/budget";
 import { getUserProgress } from "@/actions/gamification";
 import { getSubscriptions } from "@/actions/subscriptions";
 import { getSavingGoals } from "@/actions/saving-goals";
-import { getDebts, Debt } from "@/actions/debts";
+import { getDebts } from "@/actions/debts";
 import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -55,7 +55,7 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen p-6 md:p-12 font-[family-name:var(--font-geist-sans)]">
-      <Header email={user.email} />
+      <Header />
 
       <Dashboard
         initialTransactions={transactions}

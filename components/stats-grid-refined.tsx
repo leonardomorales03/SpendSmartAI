@@ -3,7 +3,7 @@
 import { Transaction } from '@/lib/types'
 import { calculateStats } from '@/lib/stats'
 import { motion } from 'framer-motion'
-import { TrendingUp, Receipt, Activity, PieChart } from 'lucide-react'
+import { Receipt, Activity, PieChart } from 'lucide-react'
 import { useSettings } from '@/components/providers/settings-provider'
 
 export function StatsGridRefined({ transactions }: { transactions: Transaction[] }) {

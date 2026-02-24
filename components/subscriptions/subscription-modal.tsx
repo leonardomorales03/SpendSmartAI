@@ -157,6 +157,7 @@ export function SubscriptionModal({ subscription, categories, presets = [], isOp
                               className="flex items-center gap-2 px-3 py-1.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-200 dark:hover:border-indigo-800 transition-all hover:scale-105"
                           >
                               {preset.logo_url ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
                                   <img src={preset.logo_url} alt={preset.name} className="w-4 h-4 rounded-full object-cover" />
                               ) : (
                                   <span>{preset.icon}</span>

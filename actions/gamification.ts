@@ -46,7 +46,7 @@ export async function getUserProgress(): Promise<UserProgress | null> {
     if (!user) return null
 
     // Ensure user_progress exists
-    const { data: progress, error } = await supabase
+    const { data: progress } = await supabase
         .from('user_progress')
         .select('*')
         .eq('user_id', user.id)
