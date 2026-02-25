@@ -254,7 +254,7 @@ export function OnboardingModal({ isOpen, onClose }: OnboardingModalProps) {
                                             type="text" 
                                             value={displayName}
                                             onChange={(e) => setDisplayName(e.target.value)}
-                                            placeholder="Ej: Leo Morales"
+                                            placeholder="Ej: Tu Nombre"
                                             className="w-full mt-1 p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl"
                                         />
                                     </div>

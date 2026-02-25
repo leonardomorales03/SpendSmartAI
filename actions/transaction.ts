@@ -450,6 +450,8 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
     const file = formData.get('file') as File;
     if (!file) throw new Error('No se proporcionó ninguna imagen');
 
+    console.log(`[extractFromImage] Recibido archivo: ${file.name}, Tamaño: ${(file.size / 1024).toFixed(2)} KB`);
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import confetti from 'canvas-confetti'
 import { useSettings } from '@/components/providers/settings-provider'
 import { useAudioRecorder } from '@/hooks/use-audio-recorder'
+import { compressImage } from '@/lib/image-compression'
 
 export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: { 
     onTransactionAdded?: (t: Transaction[]) => void, 
@@ -54,8 +55,17 @@ export function MagicInput({ onTransactionAdded, onRefresh, onGoalsChange }: {
         const isPdf = file.type === 'application/pdf';
         toast.info(isPdf ? t('magicInput.analyzing_pdf') : t('magicInput.analyzing_image'));
 
+        let processedFile = file;
+        if (!isPdf) {
+            try {
+                processedFile = await compressImage(file);
+            } catch (error) {
+                console.error("Image compression failed, using original file", error);
+            }
+        }
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', processedFile);
 
         startTransition(async () => {
             try {
