@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { SavingGoal } from '@/lib/types'
+import { checkFeatureAccess } from '@/lib/plan-limits'
 
 export async function getSavingGoals(): Promise<SavingGoal[]> {
     const supabase = await createClient()
@@ -45,6 +46,13 @@ export async function upsertSavingGoal(input: SavingGoalInput): Promise<UpsertSa
 
     if (!user) {
         return { success: false, error: 'Usuario no autenticado' }
+    }
+
+    if (!input.id) {
+        const access = await checkFeatureAccess('create_goal')
+        if (!access.allowed) {
+            return { success: false, error: access.error }
+        }
     }
 
     const payload: Partial<SavingGoal> = {

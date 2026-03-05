@@ -12,6 +12,9 @@ export type UserSettings = {
     locale: string
     language?: 'es' | 'en'
     has_completed_onboarding?: boolean
+    plan?: 'free' | 'pro'
+    pro_until?: string | null
+    billing_status?: string | null
 }
 
 export type UserProfile = {
@@ -49,7 +52,10 @@ export async function getSettings() {
         currency: settings?.currency || 'COP',
         locale: settings?.locale || 'es-CO',
         language: settings?.language || 'es',
-        has_completed_onboarding: settings?.has_completed_onboarding || false
+        has_completed_onboarding: settings?.has_completed_onboarding || false,
+        plan: settings?.plan || 'free',
+        pro_until: settings?.pro_until || null,
+        billing_status: settings?.billing_status || null
     }
 
     return {

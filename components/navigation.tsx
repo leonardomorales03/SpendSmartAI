@@ -17,6 +17,10 @@ export function Navigation({ email }: { email?: string }) {
     const { t, profile } = useSettings();
     const pathname = usePathname();
 
+    if (pathname?.startsWith('/login') || pathname?.startsWith('/auth')) {
+        return null;
+    }
+
     const navItems = [
         { name: t('nav.history') || 'Historial', href: '/transactions', icon: Home },
         { name: t('nav.budget') || 'Presupuesto', href: '/budget', icon: Wallet },

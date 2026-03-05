@@ -2,12 +2,13 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { User, Lock, Save, Loader2, Globe } from 'lucide-react'
+import { User, Lock, Save, Loader2, Globe, CreditCard } from 'lucide-react'
 import { toast } from 'sonner'
 import { updateProfile, updatePreferences, updatePassword, UserSettings, UserProfile } from '@/actions/settings'
 import { getExchangeRate } from '@/actions/currency'
 import { useRouter } from 'next/navigation'
 import { useSettings } from '@/components/providers/settings-provider'
+import { PricingTable } from '@/components/pricing/pricing-table'
 
 interface SettingsFormProps {
     settings: UserSettings
@@ -150,52 +151,39 @@ export function SettingsForm({ settings, profile }: SettingsFormProps) {
     }
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="flex flex-col md:flex-row gap-6">
             {/* Sidebar Navigation */}
-            <nav className="md:col-span-1 space-y-1">
-                <button
-                    onClick={() => setActiveTab('profile')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                        activeTab === 'profile' 
-                            ? 'bg-zinc-900 text-white shadow-md' 
-                            : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                    }`}
-                >
-                    <User className="w-4 h-4" />
-                    {t('settings.profile')}
-                </button>
-                <button
-                    onClick={() => setActiveTab('preferences')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                        activeTab === 'preferences' 
-                            ? 'bg-zinc-900 text-white shadow-md' 
-                            : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                    }`}
-                >
-                    <Globe className="w-4 h-4" />
-                    {t('settings.preferences')}
-                </button>
-                <button
-                    onClick={() => setActiveTab('security')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
-                        activeTab === 'security' 
-                            ? 'bg-zinc-900 text-white shadow-md' 
-                            : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                    }`}
-                >
-                    <Lock className="w-4 h-4" />
-                    {t('settings.security')}
-                </button>
-            </nav>
+            <aside className="w-full md:w-64 flex-shrink-0">
+                <nav className="flex md:flex-col gap-2 p-2 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl overflow-x-auto">
+                    {[
+                        { id: 'profile', icon: User, label: t('settings.profile') },
+                        { id: 'preferences', icon: Globe, label: t('settings.preferences') },
+                        { id: 'security', icon: Lock, label: t('settings.security') },
+                        { id: 'billing', icon: CreditCard, label: 'Planes y Facturación' },
+                    ].map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id as any)}
+                            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+                                activeTab === item.id
+                                    ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                            }`}
+                        >
+                            <item.icon className="w-4 h-4" />
+                            {item.label}
+                        </button>
+                    ))}
+                </nav>
+            </aside>
 
             {/* Content Area */}
-            <div className="md:col-span-3">
+            <div className="flex-1 min-w-0">
                 <motion.div
                     key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm"
                 >
                     {activeTab === 'profile' && (
                         <div className="space-y-6">
@@ -337,47 +325,58 @@ export function SettingsForm({ settings, profile }: SettingsFormProps) {
                     )}
 
                     {activeTab === 'security' && (
-                        <div className="space-y-6">
-                            <div>
-                                <h2 className="text-xl font-bold mb-1">{t('settings.security')}</h2>
-                                <p className="text-sm text-zinc-500">{t('settings.securityMsg')}</p>
-                            </div>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium mb-1.5">{t('settings.newPassword')}</label>
-                                    <input
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                                        placeholder="••••••••"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-sm font-medium mb-1.5">{t('settings.confirmPassword')}</label>
-                                    <input
-                                        type="password"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                                        placeholder="••••••••"
-                                    />
+                        <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                            <div className="space-y-8">
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                                        <Lock className="w-5 h-5 text-indigo-500" />
+                                        {t('settings.changePassword')}
+                                    </h3>
+                                    <p className="text-sm text-zinc-500">
+                                        {t('settings.secureAccount')}
+                                    </p>
                                 </div>
 
-                                <div className="pt-4">
-                                    <button
-                                        onClick={handleUpdatePassword}
-                                        disabled={isLoading || !newPassword || !confirmPassword}
-                                        className="flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-medium hover:opacity-90 disabled:opacity-50 transition-all"
-                                    >
-                                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                        {t('settings.updatePassword')}
-                                    </button>
+                                <div className="space-y-4 max-w-md">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1.5">{t('settings.newPassword')}</label>
+                                        <input
+                                            type="password"
+                                            value={newPassword}
+                                            onChange={(e) => setNewPassword(e.target.value)}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1.5">{t('settings.confirmPassword')}</label>
+                                        <input
+                                            type="password"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+
+                                    <div className="pt-4">
+                                        <button
+                                            onClick={handleUpdatePassword}
+                                            disabled={isLoading || !newPassword || !confirmPassword}
+                                            className="flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black rounded-xl font-medium hover:opacity-90 disabled:opacity-50 transition-all"
+                                        >
+                                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                            {t('settings.updatePassword')}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    )}
+
+                    {activeTab === 'billing' && (
+                        <PricingTable />
                     )}
                 </motion.div>
             </div>

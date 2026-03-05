@@ -23,7 +23,7 @@ type AiTransactionWithItems = AiTransaction & {
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { groq, GROQ_MODELS } from '@/lib/groq'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkFeatureAccess } from '@/lib/plan-limits'
 import { detectAnomaly } from './anomaly'
 import { checkDailyStreak, checkAchievements, addXp } from './gamification'
 import { addDebtPayment, getDebts, syncDebtPayment, deleteDebtPaymentByTransaction } from './debts'
@@ -36,16 +36,12 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const rate = await checkRateLimit({
-        key: 'ai_pdf_extract',
-        maxRequests: 20,
-        windowSeconds: 60 * 60,
-    })
+    const access = await checkFeatureAccess('magic_scan')
 
-    if (!rate.allowed) {
+    if (!access.allowed) {
         return {
             type: 'answer',
-            text: 'Has alcanzado el límite de análisis de documentos por hora. Intenta de nuevo más tarde.',
+            text: access.error || 'Has alcanzado el límite de escaneos de documentos.',
         } as AIAnswer
     }
 
@@ -90,8 +86,8 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
         console.log('--- TEXTO EXTRAÍDO DE PDF (pdf2json) ---');
         console.log(text.substring(0, 200) + '...'); // Log truncado para no ensuciar
 
-        return extractTransactionDetails(text, { autoSaveItems: false });
-    } catch (error) {
+    return extractTransactionDetails(text, { autoSaveItems: false, skipLimitCheck: true });
+} catch (error) {
         console.error('Error al procesar PDF:', error);
         throw new Error('No se pudo procesar el PDF');
     }
@@ -99,22 +95,20 @@ export async function extractFromPdf(formData: FormData): Promise<Transaction[] 
 
 export async function extractTransactionDetails(
     text: string,
-    options?: { autoSaveItems?: boolean }
+    options?: { autoSaveItems?: boolean; skipLimitCheck?: boolean }
 ): Promise<Transaction[] | AIAnswer> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    const rate = await checkRateLimit({
-        key: 'ai_text_extract',
-        maxRequests: 20,
-        windowSeconds: 60 * 60,
-    })
+    if (!options?.skipLimitCheck) {
+        const access = await checkFeatureAccess('ai_chat')
 
-    if (!rate.allowed) {
-        return {
-            type: 'answer',
-            text: 'Has alcanzado el límite de solicitudes de IA por hora. Intenta de nuevo más tarde.',
-        } as AIAnswer
+        if (!access.allowed) {
+            return {
+                type: 'answer',
+                text: access.error || 'Has alcanzado el límite de consultas de IA.',
+            } as AIAnswer
+        }
     }
 
     // 1. DETECT IF IT IS A QUESTION (ASK MY MONEY)
@@ -426,14 +420,10 @@ export async function transcribeAudio(formData: FormData) {
     const file = formData.get('file') as File;
     if (!file) throw new Error('No se proporcionó ningún archivo de audio');
 
-    const rate = await checkRateLimit({
-        key: 'ai_audio_transcription',
-        maxRequests: 20,
-        windowSeconds: 60 * 60,
-    })
+    const access = await checkFeatureAccess('ai_chat')
 
-    if (!rate.allowed) {
-        throw new Error('Has alcanzado el límite de transcripciones de audio por hora. Intenta de nuevo más tarde.');
+    if (!access.allowed) {
+        throw new Error(access.error || 'Has alcanzado el límite de transcripciones.');
     }
 
     const transcription = await groq.audio.transcriptions.create({
@@ -456,16 +446,12 @@ export async function extractFromImage(formData: FormData): Promise<Transaction[
     const buffer = Buffer.from(bytes);
     const base64Image = buffer.toString('base64');
 
-    const rate = await checkRateLimit({
-        key: 'ai_image_extract',
-        maxRequests: 20,
-        windowSeconds: 60 * 60,
-    })
+    const access = await checkFeatureAccess('magic_scan')
 
-    if (!rate.allowed) {
+    if (!access.allowed) {
         return {
             type: 'answer',
-            text: 'Has alcanzado el límite de análisis de imágenes por hora. Intenta de nuevo más tarde.',
+            text: access.error || 'Has alcanzado el límite de análisis de imágenes.',
         } as AIAnswer
     }
 

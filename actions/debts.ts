@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { checkFeatureAccess } from '@/lib/plan-limits'
 
 type DebtType = 'credit_card' | 'loan' | 'personal' | 'other'
 type DebtStatus = 'active' | 'paid' | 'defaulted'
@@ -77,6 +78,11 @@ export async function createDebt(input: CreateDebtInput) {
 
   if (!user) {
     return { success: false, error: 'Usuario no autenticado' }
+  }
+
+  const access = await checkFeatureAccess('create_debt')
+  if (!access.allowed) {
+    return { success: false, error: access.error }
   }
 
   const { data, error } = await supabase

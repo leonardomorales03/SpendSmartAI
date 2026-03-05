@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { groq, GROQ_MODELS } from '@/lib/groq'
 import { AIAnswer } from '@/lib/types'
-import { checkRateLimit } from '@/lib/rate-limit'
+import { checkFeatureAccess } from '@/lib/plan-limits'
 
 const AVAILABLE_TOOLS = [
     {
@@ -129,16 +129,12 @@ export async function processFinancialQuery(query: string): Promise<AIAnswer> {
     const safeQuery = validation.sanitized;
 
     try {
-        const rate = await checkRateLimit({
-            key: 'ai_financial_chat',
-            maxRequests: 20,
-            windowSeconds: 60 * 60,
-        })
+        const access = await checkFeatureAccess('ai_chat')
 
-        if (!rate.allowed) {
+        if (!access.allowed) {
             return {
                 type: 'answer',
-                text: 'Has alcanzado el límite de consultas al chat financiero por hora. Intenta de nuevo más tarde.',
+                text: access.error || 'Has alcanzado el límite de consultas al chat financiero. Mejora a Pro.',
             }
         }
 
